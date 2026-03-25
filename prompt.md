@@ -1,15 +1,6 @@
 codemagic.io failed building android:
 
-Alternatively, use the flag "--android-skip-build-dependency-validation" to bypass this check.
-
-Potential fix: Your project's AGP version is typically defined in the plugins block of the `settings.gradle` file (/Users/builder/clone/android/settings.gradle), by a plugin with the id of com.android.application.
 If you don't see a plugins block, your project was likely created with an older template version. In this case it is most likely defined in the top-level build.gradle file (/Users/builder/clone/android/build.gradle) by the following line in the dependencies block of the buildscript: "classpath 'com.android.tools.build:gradle:<version>'".
-
-Warning: Flutter support for your project's Kotlin version (1.9.22) will soon be dropped. Please upgrade your Kotlin version to a version of at least 2.1.0 soon.
-Alternatively, use the flag "--android-skip-build-dependency-validation" to bypass this check.
-
-Potential fix: Your project's KGP version is typically defined in the plugins block of the `settings.gradle` file (/Users/builder/clone/android/settings.gradle), by a plugin with the id of org.jetbrains.kotlin.android.
-If you don't see a plugins block, your project was likely created with an older template version, in which case it is most likely defined in the top-level build.gradle file (/Users/builder/clone/android/build.gradle) by the ext.kotlin_version property.
 
 Checking the license for package Android SDK Build-Tools 33.0.1 in /usr/local/share/android-sdk/licenses
 License for package Android SDK Build-Tools 33.0.1 accepted.
@@ -25,17 +16,25 @@ Preparing "Install Android SDK Platform 36 (revision 2)".
 Installing Android SDK Platform 36 in /usr/local/share/android-sdk/platforms/android-36
 "Install Android SDK Platform 36 (revision 2)" complete.
 "Install Android SDK Platform 36 (revision 2)" finished.
+e: file:///Users/builder/clone/android/app/src/main/kotlin/com/translator/translator_keyboard/TranslatorInputMethodService.kt:63:34 None of the following candidates is applicable:
+constructor(p0: Context, p1: Boolean): FlutterSurfaceView
+constructor(p0: Context, p1: AttributeSet): FlutterSurfaceView
+e: file:///Users/builder/clone/android/app/src/main/kotlin/com/translator/translator_keyboard/TranslatorInputMethodService.kt:64:54 Cannot infer type for this parameter. Please specify it explicitly.
+e: file:///Users/builder/clone/android/app/src/main/kotlin/com/translator/translator_keyboard/TranslatorInputMethodService.kt:64:54 Unresolved reference. None of the following candidates is applicable because of a receiver type mismatch:
+fun <T> T.apply(block: T.() -> Unit): T
+[R|Contract description]
+<
+CallsInPlace(block, EXACTLY_ONCE) >
+e: file:///Users/builder/clone/android/app/src/main/kotlin/com/translator/translator_keyboard/TranslatorInputMethodService.kt:64:60 Cannot infer type for this parameter. Please specify it explicitly.
+e: file:///Users/builder/clone/android/app/src/main/kotlin/com/translator/translator_keyboard/TranslatorInputMethodService.kt:65:13 Unresolved reference 'attachToFlutterEngine'.
 
 FAILURE: Build failed with an exception.
 
 - What went wrong:
-  Execution failed for task ':app:bundleDebugResources'.
+  Execution failed for task ':app:compileDebugKotlin'.
 
-  > A failure occurred while executing com.android.build.gradle.internal.res.Aapt2ProcessResourcesRunnable
-  > Android resource linking failed
-
-       /Users/builder/clone/build/app/intermediates/bundle_manifest/debug/AndroidManifest.xml:20: error: resource mipmap/ic_launcher (aka com.translator.translator_keyboard:mipmap/ic_launcher) not found.
-       error: failed processing manifest.
+  > A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+  > Compilation error. See log for more details
 
 - Try:
   > Run with --stacktrace option to get the stack trace.
@@ -43,8 +42,8 @@ FAILURE: Build failed with an exception.
   > Run with --scan to get full insights.
   > Get more help at https://help.gradle.org.
 
-BUILD FAILED in 1m 40s
-Running Gradle task 'bundleDebug'... 101.7s
+BUILD FAILED in 2m 21s
+Running Gradle task 'bundleDebug'... 142.7s
 Gradle task bundleDebug failed with exit code 1
 
 Build failed :|

@@ -6,8 +6,6 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.engine.FlutterEngineCache
 import io.flutter.embedding.engine.dart.DartExecutor
 import io.flutter.embedding.android.FlutterView
-import io.flutter.embedding.android.FlutterSurfaceView
-import io.flutter.embedding.android.TransparencyMode
 import io.flutter.plugin.common.MethodChannel
 import android.inputmethodservice.InputMethodService
 
@@ -60,8 +58,7 @@ class TranslatorInputMethodService : InputMethodService() {
 
     override fun onCreateInputView(): View {
         // Embed Flutter view inside the IME
-        val flutterSurfaceView = FlutterSurfaceView(this, TransparencyMode.opaque)
-        return FlutterView(this, flutterSurfaceView).apply {
+        return FlutterView(this).apply {
             attachToFlutterEngine(flutterEngine)
         }
     }
