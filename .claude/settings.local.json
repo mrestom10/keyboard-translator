@@ -42,7 +42,10 @@
       "Bash(pip install:*)",
       "Bash(pip3 install:*)",
       "Bash(python -m pip install codemagic-cli-tools)",
-      "Bash(python3 -m pip install codemagic-cli-tools)"
+      "Bash(python3 -m pip install codemagic-cli-tools)",
+      "Bash(for density:*)",
+      "Bash(do cp:*)",
+      "Bash(done)"
     ]
   }
 }
