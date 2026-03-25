@@ -1,0 +1,53 @@
+name: translator_keyboard
+description: Real-time translation keyboard extension
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+  flutter: ">=3.22.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State Management
+  flutter_bloc: ^8.1.6
+  equatable: ^2.0.5
+
+  # DI
+  get_it: ^7.7.0
+  injectable: ^2.4.4
+
+  # Networking
+  dio: ^5.4.3+1
+
+  # Functional types
+  dartz: ^0.10.1
+
+  # Storage (persist language preferences)
+  shared_preferences: ^2.3.1
+
+  # Connectivity
+  connectivity_plus: ^6.0.5
+
+  # UI
+  google_fonts: ^6.2.1
+  flutter_animate: ^4.5.0
+  gap: ^3.0.1
+  shimmer: ^3.0.0
+
+  # Env / Config
+  flutter_dotenv: ^5.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  injectable_generator: ^2.6.1
+  build_runner: ^2.4.11
+  bloc_test: ^9.1.7
+  mocktail: ^1.0.4
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/
