@@ -2,6 +2,7 @@ package com.translator.translator_keyboard
 
 import android.view.View
 import android.view.inputmethod.EditorInfo
+import android.widget.FrameLayout
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.engine.FlutterEngineCache
 import io.flutter.embedding.engine.dart.DartExecutor
@@ -13,9 +14,15 @@ class TranslatorInputMethodService : InputMethodService() {
 
     private lateinit var flutterEngine: FlutterEngine
     private lateinit var methodChannel: MethodChannel
+    private var flutterView: FlutterView? = null
 
     override fun onCreate() {
         super.onCreate()
+
+        // Ensure Flutter is initialized
+        io.flutter.FlutterInjector.instance().flutterLoader().startInitialization(this)
+        io.flutter.FlutterInjector.instance().flutterLoader().ensureInitializationComplete(this, null)
+
         initFlutterEngine()
     }
 
@@ -57,10 +64,28 @@ class TranslatorInputMethodService : InputMethodService() {
     }
 
     override fun onCreateInputView(): View {
-        // Embed Flutter view inside the IME
-        return FlutterView(this).apply {
+        // Detach previous FlutterView if it exists
+        flutterView?.detachFromFlutterEngine()
+
+        // Create a container with explicit keyboard height
+        val container = FrameLayout(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                (300 * resources.displayMetrics.density).toInt() // 300dp height
+            )
+        }
+
+        // Create and attach FlutterView
+        flutterView = FlutterView(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
             attachToFlutterEngine(flutterEngine)
         }
+
+        container.addView(flutterView)
+        return container
     }
 
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
@@ -70,6 +95,7 @@ class TranslatorInputMethodService : InputMethodService() {
     }
 
     override fun onDestroy() {
+        flutterView?.detachFromFlutterEngine()
         flutterEngine.destroy()
         super.onDestroy()
     }
