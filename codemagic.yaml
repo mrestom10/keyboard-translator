@@ -12,7 +12,8 @@ workflows:
       - name: Build debug APK
         script: flutter build apk --debug
     artifacts:
-      - build/app/outputs/flutter-apk/app-debug.apk
+      - build/**/outputs/**/*.apk
+      - build/**/outputs/**/*.aab
     publishing:
       email:
         recipients:
@@ -21,31 +22,31 @@ workflows:
           success: true
           failure: true
 
-  ios-debug:
-    name: iOS Debug Build
-    max_build_duration: 60
-    instance_type: mac_mini_m2
-    environment:
-      flutter: 3.29.2
-      xcode: latest
-      ios_signing:
-        distribution_type: development
-        bundle_identifier: com.translator.translatorKeyboard
-      groups:
-        - ios_credentials
-    scripts:
-      - name: Get Flutter packages
-        script: flutter pub get
-      - name: Set up code signing
-        script: xcode-project use-profiles
-      - name: Build debug IPA
-        script: flutter build ipa --debug --export-options-plist=/Users/builder/export_options.plist
-    artifacts:
-      - build/ios/ipa/*.ipa
-    publishing:
-      email:
-        recipients:
-          - mohammad.restom@intalio.com
-        notify:
-          success: true
-          failure: true
+  # ios-debug:
+  #   name: iOS Debug Build
+  #   max_build_duration: 60
+  #   instance_type: mac_mini_m2
+  #   environment:
+  #     flutter: 3.29.2
+  #     xcode: latest
+  #     ios_signing:
+  #       distribution_type: development
+  #       bundle_identifier: com.translator.translatorKeyboard
+  #     groups:
+  #       - ios_credentials
+  #   scripts:
+  #     - name: Get Flutter packages
+  #       script: flutter pub get
+  #     - name: Set up code signing
+  #       script: xcode-project use-profiles
+  #     - name: Build debug IPA
+  #       script: flutter build ipa --debug --export-options-plist=/Users/builder/export_options.plist
+  #   artifacts:
+  #     - build/ios/ipa/*.ipa
+  #   publishing:
+  #     email:
+  #       recipients:
+  #         - mohammad.restom@intalio.com
+  #       notify:
+  #         success: true
+  #         failure: true
