@@ -17,7 +17,7 @@ workflows:
     publishing:
       email:
         recipients:
-          - mohammad.restom@intalio.com
+          - mohamed.restom@gmail.com
         notify:
           success: true
           failure: true
