@@ -38,7 +38,11 @@
       "Bash(export PATH=\"$PATH:/d/flutter/bin\")",
       "Bash(flutter doctor:*)",
       "Bash(flutter --version --no-color)",
-      "Bash(export PATH=\"/d/flutter/bin:$PATH\")"
+      "Bash(export PATH=\"/d/flutter/bin:$PATH\")",
+      "Bash(pip install:*)",
+      "Bash(pip3 install:*)",
+      "Bash(python -m pip install codemagic-cli-tools)",
+      "Bash(python3 -m pip install codemagic-cli-tools)"
     ]
   }
 }
