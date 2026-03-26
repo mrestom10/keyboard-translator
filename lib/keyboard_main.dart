@@ -9,11 +9,18 @@ import 'package:translator_keyboard/features/translation/presentation/widgets/ke
 @pragma('vm:entry-point')
 void keyboardMain() {
   WidgetsFlutterBinding.ensureInitialized();
-  configureDependencies();
 
   FlutterError.onError = (details) {
-    debugPrint('Flutter error in keyboard: ${details.exception}');
+    debugPrint('KEYBOARD_ERROR: ${details.exception}');
+    debugPrint('KEYBOARD_STACK: ${details.stack}');
   };
+
+  // Try to init DI — if it fails, still show the keyboard
+  try {
+    configureDependencies();
+  } catch (e) {
+    debugPrint('KEYBOARD_DI_ERROR: $e');
+  }
 
   runApp(const KeyboardPanelApp());
 }
@@ -23,10 +30,9 @@ class KeyboardPanelApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Lightweight theme — no GoogleFonts (can fail in IME sandbox with no network).
-    // No Scaffold — it adds unnecessary overhead and transparent-background bugs.
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      // Inline theme — zero external dependencies, cannot fail
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.light,
@@ -40,23 +46,53 @@ class KeyboardPanelApp extends StatelessWidget {
       themeMode: ThemeMode.system,
       builder: (context, child) {
         ErrorWidget.builder = (FlutterErrorDetails details) {
-          debugPrint('Widget error: ${details.exception}');
-          return Container(
-            color: const Color(0xFFF0F0F3),
+          debugPrint('KEYBOARD_WIDGET_ERROR: ${details.exception}');
+          return ColoredBox(
+            color: const Color(0xFFFF6B6B),
             child: Center(
               child: Text(
-                'Keyboard error: ${details.exception}',
-                style: const TextStyle(color: Colors.red, fontSize: 12),
+                '${details.exception}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  decoration: TextDecoration.none,
+                ),
               ),
             ),
           );
         };
         return child ?? const SizedBox.shrink();
       },
-      home: BlocProvider(
+      home: _SafeKeyboardHome(),
+    );
+  }
+}
+
+/// Wraps the keyboard in error-safe initialization.
+/// If BLoC fails, shows a diagnostic message instead of crashing.
+class _SafeKeyboardHome extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    try {
+      return BlocProvider(
         create: (_) => getIt<TranslationBloc>(),
         child: const KeyboardPanel(),
-      ),
-    );
+      );
+    } catch (e) {
+      debugPrint('KEYBOARD_BLOC_ERROR: $e');
+      return ColoredBox(
+        color: const Color(0xFFFF6B6B),
+        child: Center(
+          child: Text(
+            'BLoC init failed: $e',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              decoration: TextDecoration.none,
+            ),
+          ),
+        ),
+      );
+    }
   }
 }

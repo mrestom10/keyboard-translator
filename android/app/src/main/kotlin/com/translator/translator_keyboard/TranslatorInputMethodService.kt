@@ -1,5 +1,7 @@
 package com.translator.translator_keyboard
 
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.View
 import android.view.inputmethod.EditorInfo
@@ -7,7 +9,7 @@ import android.widget.FrameLayout
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.engine.dart.DartExecutor
 import io.flutter.embedding.android.FlutterView
-import io.flutter.embedding.android.FlutterTextureView
+import io.flutter.embedding.android.FlutterSurfaceView
 import io.flutter.plugin.common.MethodChannel
 import android.inputmethodservice.InputMethodService
 
@@ -18,7 +20,8 @@ class TranslatorInputMethodService : InputMethodService() {
     private var flutterEngine: FlutterEngine? = null
     private var methodChannel: MethodChannel? = null
     private var flutterView: FlutterView? = null
-    private var cachedView: FrameLayout? = null
+    private var cachedContainer: FrameLayout? = null
+    private val handler = Handler(Looper.getMainLooper())
 
     override fun onCreate() {
         super.onCreate()
@@ -30,11 +33,11 @@ class TranslatorInputMethodService : InputMethodService() {
                 loader.startInitialization(applicationContext)
                 loader.ensureInitializationComplete(applicationContext, null)
             }
-            Log.d(TAG, "Flutter loader initialized")
+            Log.d(TAG, "Flutter loader ready")
 
             initFlutterEngine()
         } catch (e: Exception) {
-            Log.e(TAG, "Error in onCreate", e)
+            Log.e(TAG, "onCreate error", e)
         }
     }
 
@@ -47,7 +50,7 @@ class TranslatorInputMethodService : InputMethodService() {
             )
         )
         flutterEngine = engine
-        Log.d(TAG, "Flutter engine initialized and Dart entrypoint executed")
+        Log.d(TAG, "Engine started, Dart entrypoint executing")
 
         methodChannel = MethodChannel(
             engine.dartExecutor.binaryMessenger,
@@ -79,20 +82,23 @@ class TranslatorInputMethodService : InputMethodService() {
 
         val engine = flutterEngine
         if (engine == null) {
-            Log.e(TAG, "FlutterEngine is null in onCreateInputView!")
+            Log.e(TAG, "Engine is null!")
             return FrameLayout(this)
         }
 
-        // Reuse cached view if available — avoids recreating the render surface
-        cachedView?.let { container ->
-            // Detach from old parent if Android recycled it
+        // Return cached view if we already built one
+        cachedContainer?.let { container ->
+            Log.d(TAG, "Returning cached container")
             (container.parent as? FrameLayout)?.removeView(container)
             engine.lifecycleChannel.appIsResumed()
-            Log.d(TAG, "Reusing cached FlutterView")
             return container
         }
 
         try {
+            // Detach old view
+            flutterView?.detachFromFlutterEngine()
+            flutterView = null
+
             val heightPx = (380 * resources.displayMetrics.density).toInt()
 
             val container = FrameLayout(this).apply {
@@ -100,15 +106,13 @@ class TranslatorInputMethodService : InputMethodService() {
                     FrameLayout.LayoutParams.MATCH_PARENT,
                     heightPx
                 )
-                // Solid background so we never see through to white IME window
-                setBackgroundColor(0xFFF0F0F3.toInt())
             }
 
-            // FlutterTextureView composites into the normal view hierarchy.
-            // Unlike SurfaceView, it doesn't create a separate window surface,
-            // so there are no z-ordering issues in IME services.
-            val textureView = FlutterTextureView(this)
-            val fView = FlutterView(this, textureView)
+            // FlutterSurfaceView with renderTransparently=true:
+            // - Calls setZOrderOnTop(true) which places the surface above the IME window
+            // - This is the ONLY mode that renders in Android 14/15 IME services
+            val surfaceView = FlutterSurfaceView(this, true)
+            val fView = FlutterView(this, surfaceView)
             fView.layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT
@@ -117,36 +121,42 @@ class TranslatorInputMethodService : InputMethodService() {
             flutterView = fView
 
             container.addView(fView)
-            cachedView = container
+            cachedContainer = container
 
+            // Signal resumed lifecycle — schedule slightly after layout to ensure surface is ready
             engine.lifecycleChannel.appIsResumed()
-            Log.d(TAG, "FlutterView created with TextureView, height=${heightPx}px")
+            handler.postDelayed({
+                engine.lifecycleChannel.appIsResumed()
+                Log.d(TAG, "Sent delayed appIsResumed")
+            }, 100)
 
+            Log.d(TAG, "FlutterView created, height=${heightPx}px")
             return container
         } catch (e: Exception) {
-            Log.e(TAG, "Error in onCreateInputView", e)
+            Log.e(TAG, "onCreateInputView error", e)
             return FrameLayout(this)
         }
     }
 
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
-        Log.d(TAG, "onStartInputView called, restarting=$restarting")
+        Log.d(TAG, "onStartInputView, restarting=$restarting")
         flutterEngine?.lifecycleChannel?.appIsResumed()
         methodChannel?.invokeMethod("onKeyboardShown", null)
     }
 
     override fun onFinishInputView(finishingInput: Boolean) {
         super.onFinishInputView(finishingInput)
-        Log.d(TAG, "onFinishInputView called")
+        Log.d(TAG, "onFinishInputView")
         flutterEngine?.lifecycleChannel?.appIsInactive()
     }
 
     override fun onDestroy() {
-        Log.d(TAG, "onDestroy called")
+        Log.d(TAG, "onDestroy")
+        handler.removeCallbacksAndMessages(null)
         flutterView?.detachFromFlutterEngine()
         flutterView = null
-        cachedView = null
+        cachedContainer = null
         flutterEngine?.destroy()
         flutterEngine = null
         super.onDestroy()
