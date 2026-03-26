@@ -1,4 +1,3 @@
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:translator_keyboard/core/di/injection.dart';
@@ -31,7 +30,6 @@ class KeyboardPanelApp extends StatelessWidget {
       darkTheme: AppTheme.dark,
       themeMode: ThemeMode.system,
       builder: (context, child) {
-        // Catch widget-level errors and show fallback
         ErrorWidget.builder = (FlutterErrorDetails details) {
           debugPrint('Widget error: ${details.exception}');
           return Container(
@@ -48,7 +46,10 @@ class KeyboardPanelApp extends StatelessWidget {
       },
       home: BlocProvider(
         create: (_) => getIt<TranslationBloc>(),
-        child: const KeyboardPanel(),
+        child: const Scaffold(
+          backgroundColor: Colors.transparent,
+          body: KeyboardPanel(),
+        ),
       ),
     );
   }

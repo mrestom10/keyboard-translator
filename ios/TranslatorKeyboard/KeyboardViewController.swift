@@ -60,7 +60,7 @@ class KeyboardViewController: UIInputViewController {
         flutterVC.didMove(toParent: self)
 
         // Set preferred height (keyboard panel height)
-        let heightConstraint = view.heightAnchor.constraint(equalToConstant: 260)
+        let heightConstraint = view.heightAnchor.constraint(equalToConstant: 380)
         heightConstraint.priority = .required
         heightConstraint.isActive = true
     }

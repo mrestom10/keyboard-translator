@@ -91,7 +91,8 @@ class TranslatorInputMethodService : InputMethodService() {
             flutterView?.detachFromFlutterEngine()
             flutterView = null
 
-            val heightPx = (300 * resources.displayMetrics.density).toInt()
+            // Full custom keyboard height: translation bar (~120dp) + 4 key rows (~180dp)
+            val heightPx = (380 * resources.displayMetrics.density).toInt()
 
             // Create a container with explicit keyboard height
             val container = FrameLayout(this).apply {

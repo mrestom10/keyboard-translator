@@ -13,6 +13,6 @@ class AppConstants {
   static const int debounceDurationMs = 400;
 
   // UI
-  static const double keyboardPanelHeight = 260;
+  static const double keyboardPanelHeight = 380;
   static const int minCharsForTranslation = 2;
 }
