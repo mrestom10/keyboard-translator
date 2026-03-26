@@ -7,6 +7,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.engine.FlutterEngineCache
 import io.flutter.embedding.engine.dart.DartExecutor
 import io.flutter.embedding.android.FlutterView
+import io.flutter.embedding.android.FlutterTextureView
 import io.flutter.plugin.common.MethodChannel
 import android.inputmethodservice.InputMethodService
 
@@ -75,8 +76,11 @@ class TranslatorInputMethodService : InputMethodService() {
             )
         }
 
-        // Create and attach FlutterView
-        flutterView = FlutterView(this).apply {
+        // Create FlutterView with TextureView rendering mode
+        // SurfaceView (default) creates a separate window surface that causes
+        // black screen in IME services on Android 15+
+        val textureView = FlutterTextureView(this)
+        flutterView = FlutterView(this, textureView).apply {
             layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT
