@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:translator_keyboard/core/di/injection.dart';
-import 'package:translator_keyboard/core/theme/app_theme.dart';
 import 'package:translator_keyboard/features/translation/presentation/bloc/translation_bloc.dart';
 import 'package:translator_keyboard/features/translation/presentation/widgets/keyboard_panel.dart';
 
@@ -24,19 +23,29 @@ class KeyboardPanelApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Lightweight theme — no GoogleFonts (can fail in IME sandbox with no network).
+    // No Scaffold — it adds unnecessary overhead and transparent-background bugs.
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
+      theme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.light,
+        colorSchemeSeed: const Color(0xFF4A90D9),
+      ),
+      darkTheme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.dark,
+        colorSchemeSeed: const Color(0xFF4A90D9),
+      ),
       themeMode: ThemeMode.system,
       builder: (context, child) {
         ErrorWidget.builder = (FlutterErrorDetails details) {
           debugPrint('Widget error: ${details.exception}');
           return Container(
-            color: Colors.white,
+            color: const Color(0xFFF0F0F3),
             child: Center(
               child: Text(
-                'Error: ${details.exception}',
+                'Keyboard error: ${details.exception}',
                 style: const TextStyle(color: Colors.red, fontSize: 12),
               ),
             ),
@@ -46,10 +55,7 @@ class KeyboardPanelApp extends StatelessWidget {
       },
       home: BlocProvider(
         create: (_) => getIt<TranslationBloc>(),
-        child: const Scaffold(
-          backgroundColor: Colors.transparent,
-          body: KeyboardPanel(),
-        ),
+        child: const KeyboardPanel(),
       ),
     );
   }

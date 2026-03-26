@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shimmer/shimmer.dart';
 
 class TranslationBar extends StatelessWidget {
   final String inputText;
@@ -14,7 +13,7 @@ class TranslationBar extends StatelessWidget {
   final VoidCallback onSendOriginal;
   final VoidCallback onClear;
   final VoidCallback onSwapLanguages;
-  final Widget languageDropdown;
+  final VoidCallback onCycleTargetLanguage;
 
   const TranslationBar({
     super.key,
@@ -30,7 +29,7 @@ class TranslationBar extends StatelessWidget {
     required this.onSendOriginal,
     required this.onClear,
     required this.onSwapLanguages,
-    required this.languageDropdown,
+    required this.onCycleTargetLanguage,
   });
 
   @override
@@ -48,84 +47,74 @@ class TranslationBar extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 8),
             child: Row(
               children: [
-                // Source language (auto-detected)
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(sourceLangFlag, style: const TextStyle(fontSize: 14)),
-                      const SizedBox(width: 4),
-                      Text(
-                        sourceLangName,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
+                // Source language chip
+                _LangChip(
+                  flag: sourceLangFlag,
+                  name: sourceLangName,
+                  color: colorScheme.surfaceContainerHighest,
+                  textColor: colorScheme.onSurfaceVariant,
                 ),
-                // Swap
+                // Swap button
                 GestureDetector(
                   onTap: onSwapLanguages,
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
                     child: Icon(Icons.swap_horiz,
                         size: 18, color: colorScheme.primary),
                   ),
                 ),
-                // Target language dropdown
-                Expanded(child: languageDropdown),
-                const SizedBox(width: 4),
+                // Target language chip (tap to cycle)
+                GestureDetector(
+                  onTap: onCycleTargetLanguage,
+                  child: _LangChip(
+                    flag: targetLangFlag,
+                    name: targetLangName,
+                    color: colorScheme.primaryContainer,
+                    textColor: colorScheme.onPrimaryContainer,
+                    showArrow: true,
+                  ),
+                ),
+                const Spacer(),
                 // Clear button
                 if (inputText.isNotEmpty)
                   GestureDetector(
                     onTap: onClear,
-                    child: Icon(Icons.clear, size: 16, color: colorScheme.error),
+                    child:
+                        Icon(Icons.clear, size: 16, color: colorScheme.error),
                   ),
               ],
             ),
           ),
 
-          // Input text display
+          // Input text preview
           if (inputText.isNotEmpty)
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              constraints: const BoxConstraints(maxHeight: 40),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+              constraints: const BoxConstraints(maxHeight: 36),
               child: Text(
                 inputText,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: colorScheme.onSurface,
-                ),
+                style: TextStyle(fontSize: 13, color: colorScheme.onSurface),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
 
-          // Translation output / loading
+          // Translation output
           if (inputText.isNotEmpty) ...[
             Divider(height: 1, color: colorScheme.outlineVariant),
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              constraints: const BoxConstraints(maxHeight: 48),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+              constraints: const BoxConstraints(maxHeight: 40),
               child: _buildOutput(context),
             ),
           ],
 
-          // Send buttons
+          // Send buttons row
           if (outputText.isNotEmpty && !isLoading)
-            Container(
-              height: 32,
-              padding: const EdgeInsets.symmetric(horizontal: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               child: Row(
                 children: [
                   Expanded(
@@ -159,17 +148,25 @@ class TranslationBar extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     if (isLoading) {
-      return Shimmer.fromColors(
-        baseColor: colorScheme.surfaceContainerHighest,
-        highlightColor: colorScheme.surfaceContainerLow,
-        child: Container(
-          height: 14,
-          width: 180,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(4),
+      return Row(
+        children: [
+          SizedBox(
+            width: 14,
+            height: 14,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: colorScheme.primary,
+            ),
           ),
-        ),
+          const SizedBox(width: 8),
+          Text(
+            'Translating...',
+            style: TextStyle(
+              fontSize: 12,
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
       );
     }
 
@@ -184,7 +181,7 @@ class TranslationBar extends StatelessWidget {
 
     if (outputText.isEmpty) {
       return Text(
-        'Translation will appear here',
+        'Translation appears here',
         style: TextStyle(
           fontSize: 12,
           color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
@@ -201,6 +198,48 @@ class TranslationBar extends StatelessWidget {
       ),
       maxLines: 2,
       overflow: TextOverflow.ellipsis,
+    );
+  }
+}
+
+class _LangChip extends StatelessWidget {
+  final String flag;
+  final String name;
+  final Color color;
+  final Color textColor;
+  final bool showArrow;
+
+  const _LangChip({
+    required this.flag,
+    required this.name,
+    required this.color,
+    required this.textColor,
+    this.showArrow = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(flag, style: const TextStyle(fontSize: 14)),
+          const SizedBox(width: 4),
+          Text(
+            name,
+            style: TextStyle(fontSize: 11, color: textColor),
+          ),
+          if (showArrow) ...[
+            const SizedBox(width: 2),
+            Icon(Icons.unfold_more, size: 12, color: textColor),
+          ],
+        ],
+      ),
     );
   }
 }
@@ -235,7 +274,8 @@ class _ActionChip extends StatelessWidget {
             const SizedBox(width: 4),
             Text(
               label,
-              style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w500),
+              style: TextStyle(
+                  fontSize: 11, color: color, fontWeight: FontWeight.w500),
             ),
           ],
         ),

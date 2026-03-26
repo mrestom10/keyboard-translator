@@ -5,10 +5,9 @@ import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.FrameLayout
 import io.flutter.embedding.engine.FlutterEngine
-import io.flutter.embedding.engine.FlutterEngineCache
 import io.flutter.embedding.engine.dart.DartExecutor
 import io.flutter.embedding.android.FlutterView
-import io.flutter.embedding.android.FlutterSurfaceView
+import io.flutter.embedding.android.FlutterTextureView
 import io.flutter.plugin.common.MethodChannel
 import android.inputmethodservice.InputMethodService
 
@@ -19,13 +18,13 @@ class TranslatorInputMethodService : InputMethodService() {
     private var flutterEngine: FlutterEngine? = null
     private var methodChannel: MethodChannel? = null
     private var flutterView: FlutterView? = null
+    private var cachedView: FrameLayout? = null
 
     override fun onCreate() {
         super.onCreate()
         Log.d(TAG, "onCreate called")
 
         try {
-            // Ensure Flutter is initialized
             val loader = io.flutter.FlutterInjector.instance().flutterLoader()
             if (!loader.initialized()) {
                 loader.startInitialization(applicationContext)
@@ -47,11 +46,9 @@ class TranslatorInputMethodService : InputMethodService() {
                 "keyboardMain"
             )
         )
-        FlutterEngineCache.getInstance().put("keyboard_engine", engine)
         flutterEngine = engine
-        Log.d(TAG, "Flutter engine initialized")
+        Log.d(TAG, "Flutter engine initialized and Dart entrypoint executed")
 
-        // MethodChannel to receive inject/dismiss commands from Flutter
         methodChannel = MethodChannel(
             engine.dartExecutor.binaryMessenger,
             "translator_keyboard/actions"
@@ -82,31 +79,36 @@ class TranslatorInputMethodService : InputMethodService() {
 
         val engine = flutterEngine
         if (engine == null) {
-            Log.e(TAG, "FlutterEngine is null!")
+            Log.e(TAG, "FlutterEngine is null in onCreateInputView!")
             return FrameLayout(this)
         }
 
-        try {
-            // Detach previous FlutterView if it exists
-            flutterView?.detachFromFlutterEngine()
-            flutterView = null
+        // Reuse cached view if available — avoids recreating the render surface
+        cachedView?.let { container ->
+            // Detach from old parent if Android recycled it
+            (container.parent as? FrameLayout)?.removeView(container)
+            engine.lifecycleChannel.appIsResumed()
+            Log.d(TAG, "Reusing cached FlutterView")
+            return container
+        }
 
-            // Full custom keyboard height: translation bar (~120dp) + 4 key rows (~180dp)
+        try {
             val heightPx = (380 * resources.displayMetrics.density).toInt()
 
-            // Create a container with explicit keyboard height
             val container = FrameLayout(this).apply {
                 layoutParams = FrameLayout.LayoutParams(
                     FrameLayout.LayoutParams.MATCH_PARENT,
                     heightPx
                 )
+                // Solid background so we never see through to white IME window
+                setBackgroundColor(0xFFF0F0F3.toInt())
             }
 
-            // Use FlutterSurfaceView with renderTransparently=true
-            // This calls setZOrderOnTop(true) internally, which prevents
-            // the black screen issue in IME services on Android 14/15
-            val surfaceView = FlutterSurfaceView(this, true)
-            val fView = FlutterView(this, surfaceView)
+            // FlutterTextureView composites into the normal view hierarchy.
+            // Unlike SurfaceView, it doesn't create a separate window surface,
+            // so there are no z-ordering issues in IME services.
+            val textureView = FlutterTextureView(this)
+            val fView = FlutterView(this, textureView)
             fView.layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT
@@ -115,10 +117,10 @@ class TranslatorInputMethodService : InputMethodService() {
             flutterView = fView
 
             container.addView(fView)
+            cachedView = container
 
-            // Tell Flutter engine the app is resumed so it renders frames
             engine.lifecycleChannel.appIsResumed()
-            Log.d(TAG, "FlutterView created and attached, height=${heightPx}px")
+            Log.d(TAG, "FlutterView created with TextureView, height=${heightPx}px")
 
             return container
         } catch (e: Exception) {
@@ -136,6 +138,7 @@ class TranslatorInputMethodService : InputMethodService() {
 
     override fun onFinishInputView(finishingInput: Boolean) {
         super.onFinishInputView(finishingInput)
+        Log.d(TAG, "onFinishInputView called")
         flutterEngine?.lifecycleChannel?.appIsInactive()
     }
 
@@ -143,6 +146,7 @@ class TranslatorInputMethodService : InputMethodService() {
         Log.d(TAG, "onDestroy called")
         flutterView?.detachFromFlutterEngine()
         flutterView = null
+        cachedView = null
         flutterEngine?.destroy()
         flutterEngine = null
         super.onDestroy()
