@@ -1,98 +1,70 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:translator_keyboard/core/di/injection.dart';
-import 'package:translator_keyboard/features/translation/presentation/bloc/translation_bloc.dart';
-import 'package:translator_keyboard/features/translation/presentation/widgets/keyboard_panel.dart';
+import 'package:translator_keyboard/features/translation/domain/usecases/detect_language.dart';
+import 'package:translator_keyboard/features/translation/domain/usecases/translate_text.dart';
+import 'package:translator_keyboard/languages/language_registry.dart';
 
-/// Named entry point for the keyboard extension.
-/// Called from native Android IME and iOS Keyboard Extension.
+/// Headless entry point for the keyboard extension.
+/// No UI rendering — only provides translation services via MethodChannel.
+/// The keyboard UI is rendered natively by Android/iOS for reliability.
 @pragma('vm:entry-point')
 void keyboardMain() {
   WidgetsFlutterBinding.ensureInitialized();
 
-  FlutterError.onError = (details) {
-    debugPrint('KEYBOARD_ERROR: ${details.exception}');
-    debugPrint('KEYBOARD_STACK: ${details.stack}');
-  };
-
-  // Try to init DI — if it fails, still show the keyboard
   try {
     configureDependencies();
   } catch (e) {
     debugPrint('KEYBOARD_DI_ERROR: $e');
+    return;
   }
 
-  runApp(const KeyboardPanelApp());
-}
+  final translateText = getIt<TranslateText>();
+  final detectLanguage = getIt<DetectLanguage>();
 
-class KeyboardPanelApp extends StatelessWidget {
-  const KeyboardPanelApp({super.key});
+  const channel = MethodChannel('translator_keyboard/translation');
 
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      // Inline theme — zero external dependencies, cannot fail
-      theme: ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.light,
-        colorSchemeSeed: const Color(0xFF4A90D9),
-      ),
-      darkTheme: ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.dark,
-        colorSchemeSeed: const Color(0xFF4A90D9),
-      ),
-      themeMode: ThemeMode.system,
-      builder: (context, child) {
-        ErrorWidget.builder = (FlutterErrorDetails details) {
-          debugPrint('KEYBOARD_WIDGET_ERROR: ${details.exception}');
-          return ColoredBox(
-            color: const Color(0xFFFF6B6B),
-            child: Center(
-              child: Text(
-                '${details.exception}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 11,
-                  decoration: TextDecoration.none,
-                ),
-              ),
-            ),
-          );
-        };
-        return child ?? const SizedBox.shrink();
-      },
-      home: _SafeKeyboardHome(),
-    );
-  }
-}
+  channel.setMethodCallHandler((call) async {
+    switch (call.method) {
+      case 'translate':
+        final args = call.arguments as Map;
+        final text = args['text'] as String;
+        final targetLang = args['targetLang'] as String;
 
-/// Wraps the keyboard in error-safe initialization.
-/// If BLoC fails, shows a diagnostic message instead of crashing.
-class _SafeKeyboardHome extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    try {
-      return BlocProvider(
-        create: (_) => getIt<TranslationBloc>(),
-        child: const KeyboardPanel(),
-      );
-    } catch (e) {
-      debugPrint('KEYBOARD_BLOC_ERROR: $e');
-      return ColoredBox(
-        color: const Color(0xFFFF6B6B),
-        child: Center(
-          child: Text(
-            'BLoC init failed: $e',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              decoration: TextDecoration.none,
-            ),
-          ),
-        ),
-      );
+        // 1. Auto-detect source language
+        final detected = await detectLanguage(text);
+        var sourceLang = detected.fold((_) => 'auto', (code) => code);
+
+        // 2. If source == target, pick a different target
+        var actualTarget = targetLang;
+        if (sourceLang == targetLang) {
+          final alt = LanguageRegistry.supported
+              .firstWhere((l) => l.code != sourceLang, orElse: () => LanguageRegistry.defaultTarget);
+          actualTarget = alt.code;
+        }
+
+        // 3. Translate
+        final result = await translateText(TranslateParams(
+          text: text,
+          sourceLangCode: sourceLang,
+          targetLangCode: actualTarget,
+        ));
+
+        return result.fold(
+          (failure) => {
+            'error': failure.message,
+          },
+          (translation) => {
+            'translatedText': translation.translatedText,
+            'detectedLang': sourceLang,
+            'targetLang': actualTarget,
+          },
+        );
+
+      default:
+        throw MissingPluginException('Unknown method: ${call.method}');
     }
-  }
+  });
+
+  debugPrint('KEYBOARD: Translation service ready');
 }
