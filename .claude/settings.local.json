@@ -53,7 +53,10 @@
       "Read(//d/Android/Sdk/platform-tools/**)",
       "Bash(flutter build:*)",
       "Read(//d/Workspace/keyboard-traslator-app/$PROGRAMFILES/**)",
-      "Bash(dart analyze:*)"
+      "Bash(dart analyze:*)",
+      "Read(//d/Workspace/keyboard-traslator-app/$LOCALAPPDATA/Android/**)",
+      "Read(//d/Android/**)",
+      "Read(//c/Android/**)"
     ]
   }
 }
