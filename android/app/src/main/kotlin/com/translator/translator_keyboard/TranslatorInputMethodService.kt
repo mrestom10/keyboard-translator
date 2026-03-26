@@ -1,5 +1,6 @@
 package com.translator.translator_keyboard
 
+import android.util.Log
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.FrameLayout
@@ -7,40 +8,52 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.engine.FlutterEngineCache
 import io.flutter.embedding.engine.dart.DartExecutor
 import io.flutter.embedding.android.FlutterView
-import io.flutter.embedding.android.FlutterTextureView
+import io.flutter.embedding.android.FlutterSurfaceView
 import io.flutter.plugin.common.MethodChannel
 import android.inputmethodservice.InputMethodService
 
+private const val TAG = "TranslatorIME"
+
 class TranslatorInputMethodService : InputMethodService() {
 
-    private lateinit var flutterEngine: FlutterEngine
-    private lateinit var methodChannel: MethodChannel
+    private var flutterEngine: FlutterEngine? = null
+    private var methodChannel: MethodChannel? = null
     private var flutterView: FlutterView? = null
 
     override fun onCreate() {
         super.onCreate()
+        Log.d(TAG, "onCreate called")
 
-        // Ensure Flutter is initialized
-        io.flutter.FlutterInjector.instance().flutterLoader().startInitialization(this)
-        io.flutter.FlutterInjector.instance().flutterLoader().ensureInitializationComplete(this, null)
+        try {
+            // Ensure Flutter is initialized
+            val loader = io.flutter.FlutterInjector.instance().flutterLoader()
+            if (!loader.initialized()) {
+                loader.startInitialization(applicationContext)
+                loader.ensureInitializationComplete(applicationContext, null)
+            }
+            Log.d(TAG, "Flutter loader initialized")
 
-        initFlutterEngine()
+            initFlutterEngine()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in onCreate", e)
+        }
     }
 
     private fun initFlutterEngine() {
-        flutterEngine = FlutterEngine(this).apply {
-            dartExecutor.executeDartEntrypoint(
-                DartExecutor.DartEntrypoint(
-                    io.flutter.FlutterInjector.instance().flutterLoader().findAppBundlePath(),
-                    "keyboardMain"
-                )
+        val engine = FlutterEngine(applicationContext)
+        engine.dartExecutor.executeDartEntrypoint(
+            DartExecutor.DartEntrypoint(
+                io.flutter.FlutterInjector.instance().flutterLoader().findAppBundlePath(),
+                "keyboardMain"
             )
-            FlutterEngineCache.getInstance().put("keyboard_engine", this)
-        }
+        )
+        FlutterEngineCache.getInstance().put("keyboard_engine", engine)
+        flutterEngine = engine
+        Log.d(TAG, "Flutter engine initialized")
 
         // MethodChannel to receive inject/dismiss commands from Flutter
         methodChannel = MethodChannel(
-            flutterEngine.dartExecutor.binaryMessenger,
+            engine.dartExecutor.binaryMessenger,
             "translator_keyboard/actions"
         ).apply {
             setMethodCallHandler { call, result ->
@@ -65,54 +78,72 @@ class TranslatorInputMethodService : InputMethodService() {
     }
 
     override fun onCreateInputView(): View {
-        // Detach previous FlutterView if it exists
-        flutterView?.detachFromFlutterEngine()
+        Log.d(TAG, "onCreateInputView called")
 
-        // Create a container with explicit keyboard height
-        val container = FrameLayout(this).apply {
-            layoutParams = FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                (300 * resources.displayMetrics.density).toInt() // 300dp height
-            )
+        val engine = flutterEngine
+        if (engine == null) {
+            Log.e(TAG, "FlutterEngine is null!")
+            return FrameLayout(this)
         }
 
-        // Create FlutterView with TextureView rendering mode
-        // SurfaceView (default) creates a separate window surface that causes
-        // black screen in IME services on Android 15+
-        val textureView = FlutterTextureView(this)
-        flutterView = FlutterView(this, textureView).apply {
-            layoutParams = FrameLayout.LayoutParams(
+        try {
+            // Detach previous FlutterView if it exists
+            flutterView?.detachFromFlutterEngine()
+            flutterView = null
+
+            val heightPx = (300 * resources.displayMetrics.density).toInt()
+
+            // Create a container with explicit keyboard height
+            val container = FrameLayout(this).apply {
+                layoutParams = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    heightPx
+                )
+            }
+
+            // Use FlutterSurfaceView with renderTransparently=true
+            // This calls setZOrderOnTop(true) internally, which prevents
+            // the black screen issue in IME services on Android 14/15
+            val surfaceView = FlutterSurfaceView(this, true)
+            val fView = FlutterView(this, surfaceView)
+            fView.layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT
             )
-            attachToFlutterEngine(flutterEngine)
+            fView.attachToFlutterEngine(engine)
+            flutterView = fView
+
+            container.addView(fView)
+
+            // Tell Flutter engine the app is resumed so it renders frames
+            engine.lifecycleChannel.appIsResumed()
+            Log.d(TAG, "FlutterView created and attached, height=${heightPx}px")
+
+            return container
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in onCreateInputView", e)
+            return FrameLayout(this)
         }
-
-        container.addView(flutterView)
-
-        // Tell Flutter engine the app is in foreground so it starts rendering frames
-        flutterEngine.lifecycleChannel.appIsResumed()
-
-        return container
     }
 
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
-        // Ensure Flutter keeps rendering when keyboard reappears
-        flutterEngine.lifecycleChannel.appIsResumed()
-        // Notify Flutter that the keyboard became active
-        methodChannel.invokeMethod("onKeyboardShown", null)
+        Log.d(TAG, "onStartInputView called, restarting=$restarting")
+        flutterEngine?.lifecycleChannel?.appIsResumed()
+        methodChannel?.invokeMethod("onKeyboardShown", null)
     }
 
     override fun onFinishInputView(finishingInput: Boolean) {
         super.onFinishInputView(finishingInput)
-        // Pause rendering when keyboard is hidden to save resources
-        flutterEngine.lifecycleChannel.appIsInactive()
+        flutterEngine?.lifecycleChannel?.appIsInactive()
     }
 
     override fun onDestroy() {
+        Log.d(TAG, "onDestroy called")
         flutterView?.detachFromFlutterEngine()
-        flutterEngine.destroy()
+        flutterView = null
+        flutterEngine?.destroy()
+        flutterEngine = null
         super.onDestroy()
     }
 }

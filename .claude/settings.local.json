@@ -45,7 +45,14 @@
       "Bash(python3 -m pip install codemagic-cli-tools)",
       "Bash(for density:*)",
       "Bash(do cp:*)",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(adb logcat:*)",
+      "Read(//d/Workspace/keyboard-traslator-app/$LOCALAPPDATA/Android/Sdk/platform-tools/**)",
+      "Read(//d/Workspace/keyboard-traslator-app/$HOME/AppData/Local/Android/Sdk/platform-tools/**)",
+      "Read(//c/Users/**)",
+      "Read(//d/Android/Sdk/platform-tools/**)",
+      "Bash(flutter build:*)",
+      "Read(//d/Workspace/keyboard-traslator-app/$PROGRAMFILES/**)"
     ]
   }
 }

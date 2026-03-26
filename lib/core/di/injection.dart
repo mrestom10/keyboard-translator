@@ -14,6 +14,8 @@ import 'package:translator_keyboard/features/translation/presentation/bloc/trans
 final getIt = GetIt.instance;
 
 void configureDependencies() {
+  if (getIt.isRegistered<Dio>()) return; // Prevent duplicate registration
+
   // External
   getIt.registerLazySingleton<Dio>(() => Dio());
   getIt.registerLazySingleton<Connectivity>(() => Connectivity());
