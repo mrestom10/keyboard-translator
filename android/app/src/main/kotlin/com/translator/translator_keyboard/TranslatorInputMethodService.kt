@@ -89,13 +89,25 @@ class TranslatorInputMethodService : InputMethodService() {
         }
 
         container.addView(flutterView)
+
+        // Tell Flutter engine the app is in foreground so it starts rendering frames
+        flutterEngine.lifecycleChannel.appIsResumed()
+
         return container
     }
 
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
+        // Ensure Flutter keeps rendering when keyboard reappears
+        flutterEngine.lifecycleChannel.appIsResumed()
         // Notify Flutter that the keyboard became active
         methodChannel.invokeMethod("onKeyboardShown", null)
+    }
+
+    override fun onFinishInputView(finishingInput: Boolean) {
+        super.onFinishInputView(finishingInput)
+        // Pause rendering when keyboard is hidden to save resources
+        flutterEngine.lifecycleChannel.appIsInactive()
     }
 
     override fun onDestroy() {
