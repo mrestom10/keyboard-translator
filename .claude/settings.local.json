@@ -56,7 +56,13 @@
       "Bash(dart analyze:*)",
       "Read(//d/Workspace/keyboard-traslator-app/$LOCALAPPDATA/Android/**)",
       "Read(//d/Android/**)",
-      "Read(//c/Android/**)"
+      "Read(//c/Android/**)",
+      "WebFetch(domain:api.mymemory.translated.net)",
+      "WebFetch(domain:mymemory.translated.net)",
+      "WebFetch(domain:libretranslate.com)",
+      "WebFetch(domain:lingva.ml)",
+      "WebSearch",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ]
   }
 }
