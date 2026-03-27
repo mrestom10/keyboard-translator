@@ -65,7 +65,10 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(curl:*)",
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(''''Status:'''', d[''''responseStatus'''']\\); print\\(''''Translation:'''', d[''''responseData''''][''''translatedText'''']\\); print\\(''''Detected:'''', d[''''responseData''''].get\\(''''detectedLanguage'''',''''N/A''''\\)\\)\")",
-      "Bash(dart run:*)"
+      "Bash(dart run:*)",
+      "WebFetch(domain:docs.klipy.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:developers.giphy.com)"
     ]
   }
 }
