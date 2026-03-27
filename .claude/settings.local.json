@@ -62,7 +62,10 @@
       "WebFetch(domain:libretranslate.com)",
       "WebFetch(domain:lingva.ml)",
       "WebSearch",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(curl:*)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(''''Status:'''', d[''''responseStatus'''']\\); print\\(''''Translation:'''', d[''''responseData''''][''''translatedText'''']\\); print\\(''''Detected:'''', d[''''responseData''''].get\\(''''detectedLanguage'''',''''N/A''''\\)\\)\")",
+      "Bash(dart run:*)"
     ]
   }
 }
