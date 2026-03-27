@@ -30,6 +30,14 @@ class LanguageRegistry {
       flagEmoji: '\u{1F1EB}\u{1F1F7}',
       fontFamily: 'Inter',
     ),
+    Language(
+      code: 'de',
+      name: 'German',
+      nativeName: 'Deutsch',
+      isRTL: false,
+      flagEmoji: '\u{1F1E9}\u{1F1EA}',
+      fontFamily: 'Inter',
+    ),
   ];
 
   static Language? findByCode(String code) =>

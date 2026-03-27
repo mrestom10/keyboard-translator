@@ -17,7 +17,11 @@ void configureDependencies() {
   if (getIt.isRegistered<Dio>()) return; // Prevent duplicate registration
 
   // External
-  getIt.registerLazySingleton<Dio>(() => Dio());
+  getIt.registerLazySingleton<Dio>(() => Dio(BaseOptions(
+    connectTimeout: const Duration(seconds: 5),
+    receiveTimeout: const Duration(seconds: 5),
+    sendTimeout: const Duration(seconds: 5),
+  )));
   getIt.registerLazySingleton<Connectivity>(() => Connectivity());
 
   // Core

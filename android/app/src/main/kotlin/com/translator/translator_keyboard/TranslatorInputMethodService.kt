@@ -4,6 +4,7 @@ import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.StateListDrawable
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -13,10 +14,10 @@ import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
 import android.widget.FrameLayout
-import android.widget.HorizontalScrollView
-import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.PopupMenu
 import android.widget.TextView
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.engine.dart.DartExecutor
@@ -34,15 +35,22 @@ private val LANGUAGES = listOf(
     LangInfo("en", "English", "\uD83C\uDDEC\uD83C\uDDE7"),
     LangInfo("ar", "Arabic", "\uD83C\uDDF8\uD83C\uDDE6"),
     LangInfo("fr", "French", "\uD83C\uDDEB\uD83C\uDDF7"),
+    LangInfo("de", "German", "\uD83C\uDDE9\uD83C\uDDEA"),
 )
 
 // ── Key Types ──────────────────────────────────────────────
-enum class KeyType { CHAR, BACKSPACE, SHIFT, SPACE, ENTER, TO_NUM, TO_ALPHA, TO_SYM }
+enum class KeyType {
+    CHAR, BACKSPACE, SHIFT, SPACE, ENTER,
+    TO_NUM, TO_ALPHA, TO_SYM,
+    GLOBE,   // switch keyboard language
+    EMOJI,   // open system emoji/keyboard picker
+}
 
 data class KeyData(
     val label: String,
     val type: KeyType = KeyType.CHAR,
     val weight: Float = 1f,
+    val shiftLabel: String? = null,
 )
 
 // ── Layouts ────────────────────────────────────────────────
@@ -50,29 +58,43 @@ private val QWERTY = listOf(
     listOf(KeyData("q"), KeyData("w"), KeyData("e"), KeyData("r"), KeyData("t"), KeyData("y"), KeyData("u"), KeyData("i"), KeyData("o"), KeyData("p")),
     listOf(KeyData("a"), KeyData("s"), KeyData("d"), KeyData("f"), KeyData("g"), KeyData("h"), KeyData("j"), KeyData("k"), KeyData("l")),
     listOf(KeyData("⇧", KeyType.SHIFT, 1.5f), KeyData("z"), KeyData("x"), KeyData("c"), KeyData("v"), KeyData("b"), KeyData("n"), KeyData("m"), KeyData("⌫", KeyType.BACKSPACE, 1.5f)),
-    listOf(KeyData("123", KeyType.TO_NUM, 1.5f), KeyData(","), KeyData(" ", KeyType.SPACE, 4f), KeyData("."), KeyData("↵", KeyType.ENTER, 1.5f)),
+    listOf(KeyData("123", KeyType.TO_NUM, 1.2f), KeyData("\uD83C\uDF10", KeyType.GLOBE, 1f), KeyData("\uD83D\uDE00", KeyType.EMOJI, 1f), KeyData(" ", KeyType.SPACE, 3.5f), KeyData("."), KeyData("↵", KeyType.ENTER, 1.3f)),
+)
+
+private val ARABIC_LAYOUT = listOf(
+    listOf(KeyData("ض"), KeyData("ص"), KeyData("ث"), KeyData("ق"), KeyData("ف"), KeyData("غ"), KeyData("ع"), KeyData("ه"), KeyData("خ"), KeyData("ح")),
+    listOf(KeyData("ش"), KeyData("س"), KeyData("ي"), KeyData("ب"), KeyData("ل"), KeyData("ا"), KeyData("ت"), KeyData("ن"), KeyData("م"), KeyData("ك")),
+    listOf(KeyData("⇧", KeyType.SHIFT, 1.5f), KeyData("ئ"), KeyData("ء"), KeyData("ؤ"), KeyData("ر"), KeyData("ى"), KeyData("ة"), KeyData("و"), KeyData("ز"), KeyData("⌫", KeyType.BACKSPACE, 1.5f)),
+    listOf(KeyData("123", KeyType.TO_NUM, 1.2f), KeyData("\uD83C\uDF10", KeyType.GLOBE, 1f), KeyData("\uD83D\uDE00", KeyType.EMOJI, 1f), KeyData(" ", KeyType.SPACE, 3.5f), KeyData("."), KeyData("↵", KeyType.ENTER, 1.3f)),
+)
+
+private val ARABIC_SHIFTED = listOf(
+    listOf(KeyData("َ"), KeyData("ً"), KeyData("ُ"), KeyData("ٌ"), KeyData("ِ"), KeyData("ٍ"), KeyData("ّ"), KeyData("ْ"), KeyData("آ"), KeyData("أ")),
+    listOf(KeyData("إ"), KeyData("ذ"), KeyData("ج"), KeyData("ظ"), KeyData("ط"), KeyData("لا"), KeyData("د"), KeyData("ـ"), KeyData("؛"), KeyData(":")),
+    listOf(KeyData("⇧", KeyType.SHIFT, 1.5f), KeyData("«"), KeyData("»"), KeyData("{"), KeyData("}"), KeyData("["), KeyData("]"), KeyData("،"), KeyData("؟"), KeyData("⌫", KeyType.BACKSPACE, 1.5f)),
+    listOf(KeyData("123", KeyType.TO_NUM, 1.2f), KeyData("\uD83C\uDF10", KeyType.GLOBE, 1f), KeyData("\uD83D\uDE00", KeyType.EMOJI, 1f), KeyData(" ", KeyType.SPACE, 3.5f), KeyData("."), KeyData("↵", KeyType.ENTER, 1.3f)),
 )
 
 private val NUMBERS = listOf(
     listOf(KeyData("1"), KeyData("2"), KeyData("3"), KeyData("4"), KeyData("5"), KeyData("6"), KeyData("7"), KeyData("8"), KeyData("9"), KeyData("0")),
     listOf(KeyData("@"), KeyData("#"), KeyData("$"), KeyData("%"), KeyData("&"), KeyData("-"), KeyData("+"), KeyData("("), KeyData(")")),
     listOf(KeyData("#+=", KeyType.TO_SYM, 1.5f), KeyData("*"), KeyData("\""), KeyData("'"), KeyData(":"), KeyData(";"), KeyData("!"), KeyData("?"), KeyData("⌫", KeyType.BACKSPACE, 1.5f)),
-    listOf(KeyData("ABC", KeyType.TO_ALPHA, 1.5f), KeyData(","), KeyData(" ", KeyType.SPACE, 4f), KeyData("."), KeyData("↵", KeyType.ENTER, 1.5f)),
+    listOf(KeyData("ABC", KeyType.TO_ALPHA, 1.2f), KeyData("\uD83C\uDF10", KeyType.GLOBE, 1f), KeyData(","), KeyData(" ", KeyType.SPACE, 3.5f), KeyData("."), KeyData("↵", KeyType.ENTER, 1.3f)),
 )
 
 private val SYMBOLS = listOf(
     listOf(KeyData("~"), KeyData("`"), KeyData("|"), KeyData("•"), KeyData("√"), KeyData("π"), KeyData("÷"), KeyData("×"), KeyData("{"), KeyData("}")),
     listOf(KeyData("£"), KeyData("¢"), KeyData("€"), KeyData("¥"), KeyData("^"), KeyData("°"), KeyData("="), KeyData("["), KeyData("]")),
     listOf(KeyData("123", KeyType.TO_NUM, 1.5f), KeyData("\\"), KeyData("/"), KeyData("_"), KeyData("<"), KeyData(">"), KeyData("…"), KeyData("¿"), KeyData("⌫", KeyType.BACKSPACE, 1.5f)),
-    listOf(KeyData("ABC", KeyType.TO_ALPHA, 1.5f), KeyData(","), KeyData(" ", KeyType.SPACE, 4f), KeyData("."), KeyData("↵", KeyType.ENTER, 1.5f)),
+    listOf(KeyData("ABC", KeyType.TO_ALPHA, 1.2f), KeyData("\uD83C\uDF10", KeyType.GLOBE, 1f), KeyData(","), KeyData(" ", KeyType.SPACE, 3.5f), KeyData("."), KeyData("↵", KeyType.ENTER, 1.3f)),
 )
 
 // ── Colors ─────────────────────────────────────────────────
 private object KB {
     val BG = Color.parseColor("#D2D3D9")
     val KEY_BG = Color.parseColor("#FFFFFF")
-    val KEY_PRESSED = Color.parseColor("#C8C9CE")
-    val SPECIAL_BG = Color.parseColor("#AEB2BF")
+    val KEY_PRESSED = Color.parseColor("#BABCC2")
+    val SPECIAL_BG = Color.parseColor("#ADB0BB")
     val SPECIAL_PRESSED = Color.parseColor("#9B9FAB")
     val ENTER_BG = Color.parseColor("#4A90D9")
     val ENTER_PRESSED = Color.parseColor("#3A7BC8")
@@ -83,6 +105,7 @@ private object KB {
     val SEND_BG = Color.parseColor("#E8F0FE")
     val DIVIDER = Color.parseColor("#C6C6C8")
     val ERROR = Color.parseColor("#FF3B30")
+    val GLOBE_BG = Color.parseColor("#C5CAD4")
 }
 
 // ── IME Service ────────────────────────────────────────────
@@ -93,30 +116,39 @@ class TranslatorInputMethodService : InputMethodService() {
     private var cachedView: View? = null
     private val handler = Handler(Looper.getMainLooper())
 
-    // State
+    // Keyboard state
     private var typedBuffer = StringBuilder()
     private var isShifted = false
-    private var currentLayout = QWERTY
-    private var targetLangIndex = 1  // Arabic by default
+    private var currentLayoutId = "qwerty"  // "qwerty", "arabic", "numbers", "symbols"
+    private var baseLayoutId = "qwerty"     // remembers letters layout when switching to numbers/symbols
+    private var targetLangIndex = 1         // Arabic by default
     private var detectedLangCode: String? = null
     private var translatedText: String? = null
     private var isTranslating = false
     private var translationError: String? = null
 
-    // UI refs
+    // UI references
     private var keyboardContainer: LinearLayout? = null
     private var inputPreview: TextView? = null
     private var translationView: TextView? = null
     private var sendButton: TextView? = null
     private var sourceLangView: TextView? = null
     private var targetLangView: TextView? = null
-    private var translationStrip: LinearLayout? = null
+    private var translationRow: LinearLayout? = null
 
-    // Debounce
+    // Timers
     private var debounceTimer: Timer? = null
-
-    // Backspace repeat
     private var backspaceTimer: Timer? = null
+
+    private val currentLayout: List<List<KeyData>>
+        get() = when (currentLayoutId) {
+            "arabic" -> if (isShifted) ARABIC_SHIFTED else ARABIC_LAYOUT
+            "numbers" -> NUMBERS
+            "symbols" -> SYMBOLS
+            else -> QWERTY
+        }
+
+    // ── Lifecycle ──────────────────────────────────────────
 
     override fun onCreate() {
         super.onCreate()
@@ -142,12 +174,36 @@ class TranslatorInputMethodService : InputMethodService() {
             )
         )
         flutterEngine = engine
-
         translationChannel = MethodChannel(
             engine.dartExecutor.binaryMessenger,
             "translator_keyboard/translation"
         )
         Log.d(TAG, "Flutter engine + translation channel ready")
+    }
+
+    override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
+        super.onStartInputView(info, restarting)
+        Log.d(TAG, "onStartInputView restarting=$restarting")
+        if (!restarting) {
+            clearAll()
+        }
+    }
+
+    override fun onFinishInputView(finishingInput: Boolean) {
+        super.onFinishInputView(finishingInput)
+        debounceTimer?.cancel()
+        stopBackspaceRepeat()
+    }
+
+    override fun onDestroy() {
+        Log.d(TAG, "onDestroy")
+        debounceTimer?.cancel()
+        stopBackspaceRepeat()
+        handler.removeCallbacksAndMessages(null)
+        flutterEngine?.destroy()
+        flutterEngine = null
+        cachedView = null
+        super.onDestroy()
     }
 
     // ── View Creation ──────────────────────────────────────
@@ -161,64 +217,86 @@ class TranslatorInputMethodService : InputMethodService() {
             setBackgroundColor(KB.BG)
         }
 
-        // Translation strip
+        // Translation strip (top)
         root.addView(buildTranslationStrip())
 
         // Keyboard rows
         val kbContainer = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(2), dp(4), dp(2), dp(4))
+            setPadding(dp(2), dp(4), dp(2), 0)
         }
         buildKeyboardRows(kbContainer)
         keyboardContainer = kbContainer
         root.addView(kbContainer)
 
+        // Bottom padding for navigation bar (#1)
+        val navPad = getNavBarPadding()
+        root.addView(View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, navPad
+            )
+            setBackgroundColor(KB.BG)
+        })
+
         cachedView = root
         return root
     }
+
+    private fun getNavBarPadding(): Int {
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                // Gesture navigation = small bar, button navigation = larger
+                val resourceId = resources.getIdentifier("navigation_bar_height", "dimen", "android")
+                if (resourceId > 0) {
+                    val navHeight = resources.getDimensionPixelSize(resourceId)
+                    // Only add partial padding — the IME already sits above nav on most devices
+                    (navHeight * 0.15).toInt().coerceAtLeast(dp(4))
+                } else dp(4)
+            } else dp(4)
+        } catch (_: Exception) { dp(4) }
+    }
+
+    // ── Translation Strip ──────────────────────────────────
 
     private fun buildTranslationStrip(): View {
         val strip = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(KB.SURFACE)
         }
-        translationStrip = strip
 
-        // ── Language Bar ──
+        // Language bar
         val langBar = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(8), dp(6), dp(8), dp(4))
         }
 
-        // Source lang chip
+        // Source language
         sourceLangView = TextView(this).apply {
             text = "Auto"
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
             setTextColor(KB.TEXT_LIGHT)
-            background = makeRoundRect(KB.KEY_PRESSED, dp(6).toFloat())
+            background = roundRect(Color.parseColor("#E8E8EC"), dp(6).toFloat())
             setPadding(dp(8), dp(4), dp(8), dp(4))
         }
         langBar.addView(sourceLangView)
 
         // Swap arrow
-        val swapBtn = TextView(this).apply {
+        langBar.addView(TextView(this).apply {
             text = " ⇄ "
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
             setTextColor(KB.PRIMARY)
             gravity = Gravity.CENTER
-            setOnClickListener { /* TODO: swap */ }
-        }
-        langBar.addView(swapBtn)
+        })
 
-        // Target lang chip
+        // Target language — TAP opens dropdown (#7)
         targetLangView = TextView(this).apply {
-            updateTargetLangDisplay()
+            updateTargetDisplay()
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
             setTextColor(KB.PRIMARY)
-            background = makeRoundRect(KB.SEND_BG, dp(6).toFloat())
+            background = roundRect(KB.SEND_BG, dp(6).toFloat())
             setPadding(dp(8), dp(4), dp(8), dp(4))
-            setOnClickListener { cycleTargetLanguage() }
+            setOnClickListener { showLanguageDropdown(it) }
         }
         langBar.addView(targetLangView)
 
@@ -228,19 +306,18 @@ class TranslatorInputMethodService : InputMethodService() {
         })
 
         // Clear button
-        val clearBtn = TextView(this).apply {
+        langBar.addView(TextView(this).apply {
             text = "✕"
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
             setTextColor(KB.ERROR)
             gravity = Gravity.CENTER
             setPadding(dp(8), 0, dp(4), 0)
             setOnClickListener { clearAll() }
-        }
-        langBar.addView(clearBtn)
+        })
 
         strip.addView(langBar)
 
-        // ── Input Preview ──
+        // Input preview
         inputPreview = TextView(this).apply {
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
             setTextColor(KB.TEXT)
@@ -250,21 +327,17 @@ class TranslatorInputMethodService : InputMethodService() {
         }
         strip.addView(inputPreview)
 
-        // ── Divider ──
-        strip.addView(View(this).apply {
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, dp(1)
-            )
-            setBackgroundColor(KB.DIVIDER)
-        })
+        // Divider
+        strip.addView(divider())
 
-        // ── Translation Row ──
+        // Translation result row
         val transRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(12), dp(4), dp(8), dp(4))
             visibility = View.GONE
         }
+        translationRow = transRow
 
         translationView = TextView(this).apply {
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
@@ -276,45 +349,58 @@ class TranslatorInputMethodService : InputMethodService() {
         transRow.addView(translationView)
 
         sendButton = TextView(this).apply {
-            text = "  Send ▶  "
+            text = " Send ▶ "
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-            setTextColor(KB.PRIMARY)
+            setTextColor(Color.WHITE)
             setTypeface(null, Typeface.BOLD)
-            background = makeRoundRect(KB.SEND_BG, dp(14).toFloat())
+            background = roundRect(KB.ENTER_BG, dp(14).toFloat())
             setPadding(dp(12), dp(6), dp(12), dp(6))
+            gravity = Gravity.CENTER
             setOnClickListener { sendTranslation() }
         }
         transRow.addView(sendButton)
 
         strip.addView(transRow)
-        this.translationStrip = strip
-
-        // Divider below strip
-        strip.addView(View(this).apply {
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, dp(1)
-            )
-            setBackgroundColor(KB.DIVIDER)
-        })
+        strip.addView(divider())
 
         return strip
     }
 
+    // ── Target Language Dropdown (#7) ──────────────────────
+
+    private fun showLanguageDropdown(anchor: View) {
+        val popup = PopupMenu(this, anchor)
+        for ((index, lang) in LANGUAGES.withIndex()) {
+            popup.menu.add(0, index, index, "${lang.flag} ${lang.name}")
+        }
+        popup.setOnMenuItemClickListener { item ->
+            targetLangIndex = item.itemId
+            targetLangView?.updateTargetDisplay()
+            if (typedBuffer.isNotEmpty()) {
+                requestTranslation(typedBuffer.toString())
+            }
+            true
+        }
+        popup.show()
+    }
+
+    // ── Keyboard Rows ──────────────────────────────────────
+
     private fun buildKeyboardRows(container: LinearLayout) {
         container.removeAllViews()
-        for ((rowIndex, row) in currentLayout.withIndex()) {
+        val layout = currentLayout
+        for ((rowIndex, row) in layout.withIndex()) {
             val rowView = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER
                 layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    dp(42)
+                    LinearLayout.LayoutParams.MATCH_PARENT, dp(42)
                 ).apply { bottomMargin = dp(2) }
             }
 
-            // Add side padding for row 2 (a-l) to center it
-            if (currentLayout === QWERTY && rowIndex == 1) {
-                rowView.setPadding(dp(16), 0, dp(16), 0)
+            // Center row 2 for QWERTY/Arabic letter layouts
+            if (rowIndex == 1 && (currentLayoutId == "qwerty" || currentLayoutId == "arabic")) {
+                rowView.setPadding(dp(14), 0, dp(14), 0)
             }
 
             for (key in row) {
@@ -325,21 +411,23 @@ class TranslatorInputMethodService : InputMethodService() {
     }
 
     private fun buildKey(key: KeyData): View {
-        val isSpecial = key.type != KeyType.CHAR && key.type != KeyType.SPACE
+        val isSpecial = key.type !in listOf(KeyType.CHAR, KeyType.SPACE)
         val isEnter = key.type == KeyType.ENTER
         val isShiftKey = key.type == KeyType.SHIFT
+        val isGlobe = key.type == KeyType.GLOBE
+        val isEmoji = key.type == KeyType.EMOJI
 
         val bgNormal = when {
             isEnter -> KB.ENTER_BG
+            isGlobe || isEmoji -> KB.GLOBE_BG
             isSpecial -> KB.SPECIAL_BG
             else -> KB.KEY_BG
         }
         val bgPressed = when {
             isEnter -> KB.ENTER_PRESSED
-            isSpecial -> KB.SPECIAL_PRESSED
+            isSpecial || isGlobe || isEmoji -> KB.SPECIAL_PRESSED
             else -> KB.KEY_PRESSED
         }
-
         val textColor = when {
             isEnter -> Color.WHITE
             isShiftKey && isShifted -> KB.PRIMARY
@@ -347,25 +435,34 @@ class TranslatorInputMethodService : InputMethodService() {
         }
 
         val displayLabel = when (key.type) {
-            KeyType.SPACE -> "space"
+            KeyType.SPACE -> if (currentLayoutId == "arabic") "مسافة" else "space"
             KeyType.BACKSPACE -> "⌫"
-            KeyType.SHIFT -> if (isShifted) "⇧" else "⇧"
+            KeyType.SHIFT -> "⇧"
             KeyType.ENTER -> "↵"
-            KeyType.CHAR -> if (isShifted && currentLayout === QWERTY) key.label.uppercase() else key.label
+            KeyType.GLOBE -> "\uD83C\uDF10"
+            KeyType.EMOJI -> "\uD83D\uDE00"
+            KeyType.CHAR -> if (isShifted && currentLayoutId == "qwerty")
+                key.label.uppercase() else key.label
             else -> key.label
+        }
+
+        val fontSize = when {
+            key.type == KeyType.SPACE -> 12f
+            key.type == KeyType.GLOBE || key.type == KeyType.EMOJI -> 18f
+            isSpecial -> 14f
+            currentLayoutId == "arabic" -> 20f
+            else -> 18f
         }
 
         val tv = TextView(this).apply {
             text = displayLabel
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, when {
-                key.type == KeyType.SPACE -> 13f
-                isSpecial -> 14f
-                else -> 18f
-            })
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, fontSize)
             setTextColor(textColor)
             gravity = Gravity.CENTER
-            background = makeKeyBackground(bgNormal, bgPressed)
-            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, key.weight).apply {
+            background = keyBg(bgNormal, bgPressed)
+            layoutParams = LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.MATCH_PARENT, key.weight
+            ).apply {
                 marginStart = dp(2)
                 marginEnd = dp(2)
             }
@@ -373,7 +470,6 @@ class TranslatorInputMethodService : InputMethodService() {
             isFocusable = true
         }
 
-        // Handle touch for backspace repeat
         if (key.type == KeyType.BACKSPACE) {
             tv.setOnTouchListener { v, event ->
                 when (event.action) {
@@ -407,37 +503,56 @@ class TranslatorInputMethodService : InputMethodService() {
     private fun handleKeyPress(key: KeyData) {
         when (key.type) {
             KeyType.CHAR -> {
-                val ch = if (isShifted && currentLayout === QWERTY)
+                val ch = if (isShifted && currentLayoutId == "qwerty")
                     key.label.uppercase() else key.label
                 typeChar(ch)
-                if (isShifted) {
+                if (isShifted && currentLayoutId != "arabic") {
                     isShifted = false
                     refreshKeyboard()
                 }
             }
             KeyType.SPACE -> typeChar(" ")
             KeyType.BACKSPACE -> doBackspace()
-            KeyType.ENTER -> {
-                currentInputConnection?.commitText("\n", 1)
-            }
+            KeyType.ENTER -> currentInputConnection?.commitText("\n", 1)
             KeyType.SHIFT -> {
                 isShifted = !isShifted
                 refreshKeyboard()
             }
             KeyType.TO_NUM -> {
-                currentLayout = NUMBERS
+                currentLayoutId = "numbers"
                 isShifted = false
                 refreshKeyboard()
             }
             KeyType.TO_ALPHA -> {
-                currentLayout = QWERTY
+                currentLayoutId = baseLayoutId
                 isShifted = false
                 refreshKeyboard()
             }
             KeyType.TO_SYM -> {
-                currentLayout = SYMBOLS
+                currentLayoutId = "symbols"
                 isShifted = false
                 refreshKeyboard()
+            }
+            KeyType.GLOBE -> {
+                // Cycle keyboard language (#5)
+                if (baseLayoutId == "qwerty") {
+                    baseLayoutId = "arabic"
+                    currentLayoutId = "arabic"
+                } else {
+                    baseLayoutId = "qwerty"
+                    currentLayoutId = "qwerty"
+                }
+                isShifted = false
+                refreshKeyboard()
+            }
+            KeyType.EMOJI -> {
+                // Open system keyboard picker for emoji access (#4)
+                try {
+                    val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+                    imm.showInputMethodPicker()
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to show input method picker", e)
+                }
             }
         }
     }
@@ -466,9 +581,7 @@ class TranslatorInputMethodService : InputMethodService() {
         stopBackspaceRepeat()
         backspaceTimer = Timer().apply {
             schedule(object : TimerTask() {
-                override fun run() {
-                    handler.post { doBackspace() }
-                }
+                override fun run() { handler.post { doBackspace() } }
             }, 400, 60)
         }
     }
@@ -487,15 +600,17 @@ class TranslatorInputMethodService : InputMethodService() {
 
         debounceTimer = Timer().apply {
             schedule(object : TimerTask() {
-                override fun run() {
-                    handler.post { requestTranslation(text) }
-                }
+                override fun run() { handler.post { requestTranslation(text) } }
             }, 400)
         }
     }
 
     private fun requestTranslation(text: String) {
-        val channel = translationChannel ?: return
+        val channel = translationChannel ?: run {
+            translationError = "Translation service not available"
+            updateTranslationUI()
+            return
+        }
         val targetLang = LANGUAGES[targetLangIndex].code
 
         isTranslating = true
@@ -537,21 +652,26 @@ class TranslatorInputMethodService : InputMethodService() {
             override fun notImplemented() {
                 handler.post {
                     isTranslating = false
-                    translationError = "Translation service not ready"
+                    translationError = "Translation engine starting…"
                     updateTranslationUI()
+                    // Retry once after a delay
+                    handler.postDelayed({
+                        if (typedBuffer.isNotEmpty()) {
+                            requestTranslation(typedBuffer.toString())
+                        }
+                    }, 2000)
                 }
             }
         })
     }
 
+    // (#8) Send translated text into the chat, replacing what was typed
     private fun sendTranslation() {
         val translation = translatedText ?: return
         val conn = currentInputConnection ?: return
 
-        // Delete what was typed
-        val len = typedBuffer.length
-        conn.deleteSurroundingText(len, 0)
-
+        // Delete typed text
+        conn.deleteSurroundingText(typedBuffer.length, 0)
         // Insert translation
         conn.commitText(translation, 1)
         clearAll()
@@ -578,19 +698,18 @@ class TranslatorInputMethodService : InputMethodService() {
     // ── UI Updates ─────────────────────────────────────────
 
     private fun updateInputPreview() {
-        val text = typedBuffer.toString()
         inputPreview?.apply {
-            if (text.isEmpty()) {
+            if (typedBuffer.isEmpty()) {
                 visibility = View.GONE
             } else {
                 visibility = View.VISIBLE
-                this.text = text
+                text = typedBuffer.toString()
             }
         }
     }
 
     private fun updateTranslationUI() {
-        val transRow = translationStrip?.getChildAt(3) as? LinearLayout ?: return
+        val transRow = translationRow ?: return
 
         when {
             typedBuffer.isEmpty() -> {
@@ -623,74 +742,40 @@ class TranslatorInputMethodService : InputMethodService() {
         }
     }
 
+    // (#3) Show detected source language
     private fun updateSourceLangDisplay() {
         val lang = LANGUAGES.find { it.code == detectedLangCode }
         sourceLangView?.text = if (lang != null) "${lang.flag} ${lang.name}" else "Auto"
     }
 
-    private fun TextView.updateTargetLangDisplay() {
+    private fun TextView.updateTargetDisplay() {
         val lang = LANGUAGES[targetLangIndex]
-        text = "${lang.flag} ${lang.name} ▾"
-    }
-
-    private fun cycleTargetLanguage() {
-        targetLangIndex = (targetLangIndex + 1) % LANGUAGES.size
-        targetLangView?.updateTargetLangDisplay()
-        // Re-translate with new target
-        if (typedBuffer.isNotEmpty()) {
-            requestTranslation(typedBuffer.toString())
-        }
+        text = "${lang.flag} ${lang.name} ▼"
     }
 
     private fun refreshKeyboard() {
         keyboardContainer?.let { buildKeyboardRows(it) }
     }
 
-    // ── Lifecycle ──────────────────────────────────────────
-
-    override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
-        super.onStartInputView(info, restarting)
-        Log.d(TAG, "onStartInputView restarting=$restarting")
-        if (!restarting) {
-            clearAll()
-        }
-    }
-
-    override fun onFinishInputView(finishingInput: Boolean) {
-        super.onFinishInputView(finishingInput)
-        debounceTimer?.cancel()
-        stopBackspaceRepeat()
-    }
-
-    override fun onDestroy() {
-        Log.d(TAG, "onDestroy")
-        debounceTimer?.cancel()
-        stopBackspaceRepeat()
-        handler.removeCallbacksAndMessages(null)
-        flutterEngine?.destroy()
-        flutterEngine = null
-        cachedView = null
-        super.onDestroy()
-    }
-
     // ── Utility ────────────────────────────────────────────
 
-    private fun dp(value: Int): Int =
-        (value * resources.displayMetrics.density).toInt()
+    private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
 
-    private fun makeRoundRect(color: Int, radius: Float): GradientDrawable =
-        GradientDrawable().apply {
-            setColor(color)
-            cornerRadius = radius
-        }
+    private fun roundRect(color: Int, radius: Float) = GradientDrawable().apply {
+        setColor(color)
+        cornerRadius = radius
+    }
 
-    private fun makeKeyBackground(normal: Int, pressed: Int): StateListDrawable {
-        val radius = dp(5).toFloat()
+    private fun keyBg(normal: Int, pressed: Int): StateListDrawable {
+        val r = dp(5).toFloat()
         return StateListDrawable().apply {
-            addState(intArrayOf(android.R.attr.state_pressed),
-                makeRoundRect(pressed, radius))
-            addState(intArrayOf(),
-                makeRoundRect(normal, radius))
+            addState(intArrayOf(android.R.attr.state_pressed), roundRect(pressed, r))
+            addState(intArrayOf(), roundRect(normal, r))
         }
+    }
+
+    private fun divider() = View(this).apply {
+        layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 1)
+        setBackgroundColor(KB.DIVIDER)
     }
 }
