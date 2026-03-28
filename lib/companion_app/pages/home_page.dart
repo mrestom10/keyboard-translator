@@ -101,7 +101,7 @@ class HomePage extends StatelessWidget {
 
             // Supported languages
             Text(
-              'Supported Languages: English, Arabic, French',
+              'Supported Languages: English, Arabic, French, German',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),

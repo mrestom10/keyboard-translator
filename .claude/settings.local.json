@@ -68,7 +68,10 @@
       "Bash(dart run:*)",
       "WebFetch(domain:docs.klipy.com)",
       "WebFetch(domain:github.com)",
-      "WebFetch(domain:developers.giphy.com)"
+      "WebFetch(domain:developers.giphy.com)",
+      "Bash(ls \"D:\\\\Workspace\\\\keyboard-traslator-app\\\\android/\"*.jks)",
+      "Bash(ls \"D:\\\\Workspace\\\\keyboard-traslator-app/\"*.jks)",
+      "Bash(grep -E \"README|LICENSE|\\\\.md$|\\\\.txt$\")"
     ]
   }
 }
