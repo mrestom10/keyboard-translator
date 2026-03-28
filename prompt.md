@@ -1,5 +1,5 @@
 Issues, enhacements and features needed:
 
-1. GIF implemented is not useful
-2. the arabic keyboard is to stratched, implement long tap on the characters to enhance the size of the keys, take as reference the google keyboard, this applicable on the english keyboard and special characters keyboard, the dot key and coma key as well
-3. for the GIF and Stickers try to find a flutter pack that help to implement the stickers and GIF features
+1. GIF not working
+2. move the button of GIF to be beside the main emoji icon
+3. check the possibility to make the GIF section and Stickers section to be similar the ones existing in whatsapp application

@@ -15,7 +15,6 @@ import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
 import android.widget.EditText
-import android.widget.GridLayout
 import android.widget.HorizontalScrollView
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -30,9 +29,6 @@ import android.view.inputmethod.EditorInfo
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.load.resource.gif.GifDrawable
-import com.bumptech.glide.request.target.CustomTarget
-import com.bumptech.glide.request.transition.Transition
-import android.graphics.drawable.Drawable
 import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
@@ -126,24 +122,12 @@ private val EMOJIS = listOf(
     EC("\uD83C\uDF4E","Food",listOf("\uD83C\uDF4E","\uD83C\uDF4A","\uD83C\uDF4B","\uD83C\uDF4C","\uD83C\uDF49","\uD83C\uDF47","\uD83C\uDF53","\uD83C\uDF45","\uD83C\uDF54","\uD83C\uDF55","\uD83C\uDF2E","\uD83C\uDF73","\uD83C\uDF5E","\uD83C\uDF70","\uD83C\uDF69","\uD83C\uDF66","\u2615","\uD83C\uDF7A","\uD83C\uDF77","\uD83E\uDD42","\uD83C\uDF75","\uD83E\uDDC3","\uD83E\uDD64","\uD83C\uDF7D\uFE0F")),
     EC("\u26BD","Sports",listOf("\u26BD","\uD83C\uDFC0","\uD83C\uDFC8","\uD83C\uDFBE","\uD83C\uDFC9","\uD83C\uDFB1","\u26F3","\uD83C\uDFAE","\uD83C\uDFB5","\uD83C\uDFB6","\uD83C\uDFA4","\uD83C\uDFAC","\uD83C\uDFA8","\uD83C\uDFC6","\uD83E\uDD47","\uD83E\uDD48","\uD83E\uDD49","\uD83C\uDFAF","\uD83C\uDFB2","\uD83C\uDFAD","\uD83C\uDFAA","\uD83C\uDFBF","\uD83C\uDFC2","\uD83C\uDFC4")),
     EC("\uD83D\uDE97","Travel",listOf("\uD83D\uDE97","\uD83D\uDE95","\uD83D\uDE8C","\uD83D\uDE93","\uD83D\uDE91","\uD83D\uDEB2","\u2708\uFE0F","\uD83D\uDE80","\uD83D\uDE82","\u26F5","\uD83C\uDFE0","\uD83C\uDFEB","\u26EA","\uD83D\uDD4C","\uD83C\uDFF0","\uD83D\uDDFC","\u2600\uFE0F","\uD83C\uDF08","\u2B50","\uD83C\uDF19","\u2744\uFE0F","\uD83C\uDF3B","\uD83C\uDF34","\uD83C\uDF0A")),
-    // (#5) Sticker combos - popular emoji combinations
-    EC("\uD83C\uDF1F","Stickers",listOf(
-        "\uD83D\uDE0D\u2764\uFE0F","\uD83D\uDE4F\u2728","\uD83D\uDD25\uD83D\uDCAF","\uD83C\uDF89\uD83C\uDF8A","\uD83D\uDC4D\uD83D\uDCAA",
-        "\uD83D\uDE02\uD83D\uDE02\uD83D\uDE02","\u2764\uFE0F\uD83D\uDD25","\uD83E\uDD29\uD83C\uDF1F","\uD83D\uDE0E\uD83D\uDC4D","\uD83E\uDD17\u2764\uFE0F",
-        "\uD83C\uDF39\u2764\uFE0F","\uD83D\uDE18\uD83D\uDC95","\uD83D\uDC4B\uD83D\uDE00","\uD83D\uDE4C\uD83C\uDF89","\uD83D\uDCAF\u2705",
-        "\uD83D\uDC9C\uD83E\uDDE1\uD83D\uDC9B\uD83D\uDC9A\uD83D\uDC99","\u2728\uD83C\uDF1F\u2B50","\uD83C\uDF1E\uD83C\uDF3B\uD83C\uDF3A","\uD83C\uDF08\u2728\uD83C\uDF1F","\uD83D\uDE80\uD83C\uDF1F\u2728",
-        "\uD83E\uDD23\uD83D\uDC80","\uD83D\uDE31\uD83D\uDE31\uD83D\uDE31","\uD83E\uDD7A\uD83D\uDC94","\uD83D\uDE4F\uD83C\uDFFB\u2764\uFE0F","\uD83D\uDCAA\uD83D\uDD25",
-        "\u270B\uD83C\uDFFB\uD83D\uDE0A","GG \uD83C\uDFC6","\uD83C\uDF82\uD83C\uDF89\uD83C\uDF88","\uD83C\uDF1D\u2728","LOL \uD83D\uDE02",
-        "OMG \uD83D\uDE31","BRB \uD83D\uDC4B","TY \u2764\uFE0F","GM \u2600\uFE0F","GN \uD83C\uDF19\u2728",
-        "ILY \u2764\uFE0F\uD83D\uDD25","\uD83D\uDC68\u200D\uD83D\uDCBB","\uD83D\uDC69\u200D\uD83D\uDCBB","\uD83E\uDDD1\u200D\uD83C\uDFA8","\uD83C\uDFC3\u200D\u2642\uFE0F\uD83D\uDCA8",
-    )),
-    // GIF tab handled separately via GIPHY API
-    EC("GIF","GIF", emptyList()),
 )
 
-// GIPHY API (free beta key for development — 100 requests/hour)
-private const val GIPHY_KEY = "dc6zaTOxFJmzC"
-private const val GIPHY_BASE = "https://api.giphy.com/v1/gifs"
+// GIPHY API — SDK key (works for GIFs + Stickers)
+private const val GIPHY_KEY = "sXpGFDGZs0Dv1mmNFvYaGUvYwKX0PWIh"
+private const val GIPHY_GIF = "https://api.giphy.com/v1/gifs"
+private const val GIPHY_STICKER = "https://api.giphy.com/v1/stickers"
 
 private object C {
     val BG = Color.parseColor("#C8CAD0"); val KEY = Color.WHITE; val KEY_P = Color.parseColor("#B8BAC0")
@@ -164,14 +148,17 @@ class TranslatorInputMethodService : InputMethodService() {
     private val handler = Handler(Looper.getMainLooper())
     private var shifted = false; private var layoutId = "qwerty"; private var baseLay = "qwerty"
     private var tgtIdx = 1; private var detLang: String? = null; private var result: String? = null
-    private var busy = false; private var err: String? = null; private var emojiOn = false
+    private var busy = false; private var err: String? = null
     private var numRowOn = true; private var emojiCat = 0; private var hasTyped = false
     private var altPopup: PopupWindow? = null
     private var gifGrid: LinearLayout? = null
+    private var stickerGrid: LinearLayout? = null
     private var gifDebounce: Timer? = null
+    private var activePanel = "none" // "none", "emoji", "gif", "sticker"
 
     private var kbWrap: LinearLayout? = null; private var numRowView: LinearLayout? = null
     private var kbRows: LinearLayout? = null; private var emojiWrap: LinearLayout? = null
+    private var gifWrap: LinearLayout? = null; private var stickerWrap: LinearLayout? = null
     private var transView: TextView? = null; private var transBtn: TextView? = null
     private var transRow: LinearLayout? = null; private var actRow: LinearLayout? = null
     private var srcLang: TextView? = null; private var tgtLang: TextView? = null
@@ -184,7 +171,7 @@ class TranslatorInputMethodService : InputMethodService() {
     }
 
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
-        super.onStartInputView(info, restarting); if (!restarting) clearAll(); if (emojiOn) hideEmoji()
+        super.onStartInputView(info, restarting); if (!restarting) clearAll(); if (activePanel != "none") hideAllPanels()
     }
     override fun onUpdateSelection(osS: Int, osE: Int, nsS: Int, nsE: Int, cS: Int, cE: Int) {
         super.onUpdateSelection(osS, osE, nsS, nsE, cS, cE)
@@ -204,6 +191,8 @@ class TranslatorInputMethodService : InputMethodService() {
         val kr = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(3),dp(3),dp(3),dp(8)) }
         buildRows(kr); kbRows = kr; kw.addView(kr); root.addView(kw)
         val ew = buildEmoji(); ew.visibility = View.GONE; emojiWrap = ew; root.addView(ew)
+        val gw = buildMediaPanel("gif"); gw.visibility = View.GONE; gifWrap = gw; root.addView(gw)
+        val sw = buildMediaPanel("sticker"); sw.visibility = View.GONE; stickerWrap = sw; root.addView(sw)
         cachedView = root; return root
     }
 
@@ -211,9 +200,11 @@ class TranslatorInputMethodService : InputMethodService() {
         orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
         setBackgroundColor(C.TB); setPadding(dp(6),dp(4),dp(6),dp(4))
         layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(36))
-        addView(tbBtn("\uD83C\uDF10") { toggleLang() })
-        addView(tbBtn("\uD83D\uDE00") { if (emojiOn) hideEmoji() else showEmoji() })
-        addView(tbBtn("\uD83D\uDCCB") { pasteClip() })
+        addView(tbBtn("\uD83D\uDE00") { togglePanel("emoji") })     // Emoji
+        addView(tbBtn("GIF") { togglePanel("gif") })               // GIF (#2)
+        addView(tbBtn("\uD83C\uDFA8") { togglePanel("sticker") })  // Stickers
+        addView(tbBtn("\uD83C\uDF10") { toggleLang() })            // Globe
+        addView(tbBtn("\uD83D\uDCCB") { pasteClip() })            // Paste
         addView(View(this@TranslatorInputMethodService).apply { layoutParams = LinearLayout.LayoutParams(0,0,1f) })
         addView(tbBtn("123") { numRowOn = !numRowOn; numRowView?.visibility = if (numRowOn) View.VISIBLE else View.GONE })
     }
@@ -380,7 +371,7 @@ class TranslatorInputMethodService : InputMethodService() {
             KT.ALPHA -> { layoutId = baseLay; shifted = false; reK() }
             KT.SYM -> { layoutId = "syms"; shifted = false; reK() }
             KT.GLOBE -> toggleLang()
-            KT.EMOJI -> { if (emojiOn) hideEmoji() else showEmoji() }
+            KT.EMOJI -> togglePanel("emoji")
         }
     }
 
@@ -443,7 +434,7 @@ class TranslatorInputMethodService : InputMethodService() {
                 setOnClickListener { selECat(i, tr) }
             })
         }
-        tr.addView(TextView(this).apply { text = "ABC"; setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f); setTextColor(C.PRI); setTypeface(null, Typeface.BOLD); gravity = Gravity.CENTER; setPadding(dp(12),dp(4),dp(12),dp(4)); background = rr(C.SEND, dp(8).toFloat()); setOnClickListener { hideEmoji() } })
+        tr.addView(TextView(this).apply { text = "ABC"; setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f); setTextColor(C.PRI); setTypeface(null, Typeface.BOLD); gravity = Gravity.CENTER; setPadding(dp(12),dp(4),dp(12),dp(4)); background = rr(C.SEND, dp(8).toFloat()); setOnClickListener { hideAllPanels() } })
         ts.addView(tr); c.addView(ts)
 
         val gs = ScrollView(this).apply { layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(190)) }
@@ -456,55 +447,152 @@ class TranslatorInputMethodService : InputMethodService() {
     }
 
     private fun buildEGrid(c: LinearLayout, ci: Int) {
-        c.removeAllViews(); val cat = EMOJIS[ci]
-        val isSticker = cat.label == "Stickers"; val isGif = cat.label == "GIF"
-
-        if (isGif) {
-            buildGifPanel(c)
-            return
-        }
-
-        val cols = if (isSticker) 4 else 8
+        c.removeAllViews(); val cat = EMOJIS[ci]; val cols = 8
         var row: LinearLayout? = null
         for ((i, e) in cat.items.withIndex()) {
             if (i % cols == 0) { row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_HORIZONTAL; setPadding(0,dp(2),0,dp(2)) }; c.addView(row) }
             row?.addView(TextView(this).apply {
                 text = e; gravity = Gravity.CENTER
-                if (isSticker) { setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f); setPadding(dp(6),dp(10),dp(6),dp(10)); background = rr(C.NUM_BG, dp(8).toFloat()); layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = dp(3); marginEnd = dp(3) } }
-                else { setTextSize(TypedValue.COMPLEX_UNIT_SP, 28f); setPadding(dp(4),dp(7),dp(4),dp(7)); layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f) }
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 28f); setPadding(dp(4),dp(7),dp(4),dp(7))
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
                 setOnClickListener { performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP); currentInputConnection?.commitText(e,1) }
             })
         }
         val rem = cols - (cat.items.size % cols); if (rem in 1 until cols) for (j in 0 until rem) row?.addView(View(this).apply { layoutParams = LinearLayout.LayoutParams(0,0,1f) })
     }
 
-    // ── GIF Search Panel (GIPHY API + Glide) ───────────────
+    // ── Unified Media Fetch (GIF + Stickers via GIPHY) ─────
 
-    private fun buildGifPanel(container: LinearLayout) {
-        // Search bar
-        val searchBar = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            setPadding(dp(8), dp(6), dp(8), dp(6))
-            gravity = Gravity.CENTER_VERTICAL
+    private fun fetchMedia(url: String, grid: LinearLayout?, isSticker: Boolean) {
+        val g = grid ?: return
+        handler.post {
+            g.removeAllViews()
+            g.addView(TextView(this).apply {
+                text = "Loading..."; setTextColor(C.TXT_L)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+                gravity = Gravity.CENTER; setPadding(0, dp(24), 0, dp(24))
+            })
         }
 
-        val searchIcon = TextView(this).apply {
-            text = "\uD83D\uDD0D"; setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
-            setPadding(dp(8), 0, dp(4), 0)
+        Thread {
+            try {
+                val conn = (URL(url).openConnection() as HttpURLConnection).apply { connectTimeout = 8000; readTimeout = 8000 }
+                if (conn.responseCode == 200) {
+                    val json = JSONObject(conn.inputStream.bufferedReader().readText())
+                    val data = json.getJSONArray("data")
+                    val items = mutableListOf<Pair<String, String>>()
+                    for (i in 0 until data.length()) {
+                        val item = data.getJSONObject(i)
+                        val images = item.getJSONObject("images")
+                        val preview = images.optJSONObject("fixed_width_small")?.optString("url", "") ?: ""
+                        val full = images.optJSONObject("fixed_width")?.optString("url", "") ?: ""
+                        if (preview.isNotEmpty() && full.isNotEmpty()) items.add(Pair(preview, full))
+                    }
+                    handler.post { displayMedia(g, items, isSticker) }
+                } else {
+                    handler.post { showMediaError(g, "Failed to load") }
+                }
+                conn.disconnect()
+            } catch (e: Exception) {
+                Log.d(TAG, "Media fetch: ${e.message}")
+                handler.post { showMediaError(g, "Network error") }
+            }
+        }.start()
+    }
+
+    private fun displayMedia(grid: LinearLayout, items: List<Pair<String, String>>, isSticker: Boolean) {
+        grid.removeAllViews()
+        if (items.isEmpty()) { grid.addView(TextView(this).apply { text = "Nothing found"; setTextColor(C.TXT_L); setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f); gravity = Gravity.CENTER; setPadding(0, dp(24), 0, dp(24)) }); return }
+
+        val cols = if (isSticker) 4 else 3
+        val itemH = if (isSticker) 90 else 100
+        var row: LinearLayout? = null
+
+        for ((i, item) in items.withIndex()) {
+            if (i % cols == 0) {
+                row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_HORIZONTAL; setPadding(0, dp(2), 0, dp(2)) }
+                grid.addView(row)
+            }
+
+            val img = ImageView(this).apply {
+                layoutParams = LinearLayout.LayoutParams(0, dp(itemH), 1f).apply { marginStart = dp(2); marginEnd = dp(2) }
+                scaleType = if (isSticker) ImageView.ScaleType.FIT_CENTER else ImageView.ScaleType.CENTER_CROP
+                if (!isSticker) background = rr(C.NUM_BG, dp(6).toFloat())
+                setOnClickListener {
+                    performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    currentInputConnection?.commitText(item.second, 1)
+                }
+            }
+
+            try {
+                Glide.with(applicationContext).asGif().load(item.first)
+                    .diskCacheStrategy(DiskCacheStrategy.ALL)
+                    .apply { if (!isSticker) centerCrop() else fitCenter() }
+                    .into(img)
+            } catch (e: Exception) { Log.d(TAG, "Glide: ${e.message}") }
+
+            row?.addView(img)
         }
-        searchBar.addView(searchIcon)
+        val rem = cols - (items.size % cols)
+        if (rem in 1 until cols) for (j in 0 until rem) row?.addView(View(this).apply { layoutParams = LinearLayout.LayoutParams(0, dp(itemH), 1f) })
+    }
+
+    private fun showMediaError(grid: LinearLayout, msg: String) {
+        grid.removeAllViews()
+        grid.addView(TextView(this).apply { text = msg; setTextColor(C.ERR); setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f); gravity = Gravity.CENTER; setPadding(0, dp(24), 0, dp(24)) })
+    }
+
+    private fun selECat(i: Int, tr: LinearLayout) { emojiCat = i; for (x in 0 until tr.childCount - 1) (tr.getChildAt(x) as? TextView)?.background = if (x == i) rr(C.EMOJI_SEL, dp(8).toFloat()) else null; emojiWrap?.findViewWithTag<LinearLayout>("eg")?.let { buildEGrid(it, i) } }
+
+    // ── Panel Management (WhatsApp-style separate panels) ──
+
+    private fun togglePanel(panel: String) {
+        if (activePanel == panel) { hideAllPanels(); return }
+        hideAllPanels()
+        activePanel = panel
+        kbWrap?.visibility = View.GONE
+        when (panel) {
+            "emoji" -> emojiWrap?.visibility = View.VISIBLE
+            "gif" -> { gifWrap?.visibility = View.VISIBLE; loadTrendingGifs() }
+            "sticker" -> { stickerWrap?.visibility = View.VISIBLE; loadTrendingStickers() }
+        }
+    }
+
+    private fun hideAllPanels() {
+        activePanel = "none"
+        emojiWrap?.visibility = View.GONE
+        gifWrap?.visibility = View.GONE
+        stickerWrap?.visibility = View.GONE
+        kbWrap?.visibility = View.VISIBLE
+    }
+
+    // ── WhatsApp-style GIF/Sticker Panel (#3) ──────────────
+
+    private fun buildMediaPanel(type: String): LinearLayout {
+        val isGif = type == "gif"
+        val panel = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL; setBackgroundColor(C.SFC)
+        }
+
+        // Header: title + search + back
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
+            setBackgroundColor(Color.WHITE); setPadding(dp(8), dp(6), dp(8), dp(6))
+        }
+
+        header.addView(TextView(this).apply {
+            text = if (isGif) "GIF" else "\uD83C\uDFA8 Stickers"
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f); setTypeface(null, Typeface.BOLD)
+            setTextColor(C.TXT); setPadding(dp(4), 0, dp(8), 0)
+        })
 
         val searchInput = EditText(this).apply {
-            hint = "Search GIFs..."
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
-            setTextColor(C.TXT); setHintTextColor(C.TXT_L)
-            background = rr(Color.WHITE, dp(20).toFloat())
-            setPadding(dp(14), dp(8), dp(14), dp(8))
-            setSingleLine(true)
+            hint = if (isGif) "Search GIFs..." else "Search stickers..."
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f); setTextColor(C.TXT); setHintTextColor(C.TXT_L)
+            background = rr(C.NUM_BG, dp(18).toFloat())
+            setPadding(dp(14), dp(6), dp(14), dp(6)); setSingleLine(true)
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-            // Don't let this EditText steal focus from the host app
-            isFocusable = true
-            isFocusableInTouchMode = true
+            isFocusable = true; isFocusableInTouchMode = true
         }
 
         searchInput.addTextChangedListener(object : TextWatcher {
@@ -512,176 +600,66 @@ class TranslatorInputMethodService : InputMethodService() {
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: Editable?) {
                 gifDebounce?.cancel()
-                val query = s?.toString()?.trim() ?: ""
+                val q = s?.toString()?.trim() ?: ""
                 gifDebounce = Timer().apply {
                     schedule(object : TimerTask() {
                         override fun run() {
                             handler.post {
-                                if (query.length >= 2) searchGifs(query)
-                                else loadTrendingGifs()
+                                if (q.length >= 2) {
+                                    if (isGif) searchGifs(q) else searchStickers(q)
+                                } else {
+                                    if (isGif) loadTrendingGifs() else loadTrendingStickers()
+                                }
                             }
                         }
                     }, 500)
                 }
             }
         })
-        searchBar.addView(searchInput)
-        container.addView(searchBar)
+        header.addView(searchInput)
 
-        // GIF grid container
+        header.addView(TextView(this).apply {
+            text = " \u2715 "; setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f); setTextColor(C.TXT_L)
+            setPadding(dp(8), 0, dp(4), 0)
+            setOnClickListener { hideAllPanels() }
+        })
+
+        panel.addView(header)
+        panel.addView(div())
+
+        // Scrollable grid
+        val scroll = ScrollView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(220))
+        }
         val grid = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(4), dp(4), dp(4), dp(4))
-        }
-        gifGrid = grid
-        container.addView(grid)
-
-        // Load trending GIFs on open
-        loadTrendingGifs()
-    }
-
-    private fun loadTrendingGifs() {
-        fetchGifs("$GIPHY_BASE/trending?api_key=$GIPHY_KEY&limit=18&rating=pg")
-    }
-
-    private fun searchGifs(query: String) {
-        val encoded = URLEncoder.encode(query, "UTF-8")
-        fetchGifs("$GIPHY_BASE/search?api_key=$GIPHY_KEY&q=$encoded&limit=18&rating=pg")
-    }
-
-    private fun fetchGifs(url: String) {
-        val grid = gifGrid ?: return
-
-        // Show loading
-        handler.post {
-            grid.removeAllViews()
-            grid.addView(TextView(this).apply {
-                text = "Loading GIFs..."; setTextColor(C.TXT_L)
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-                gravity = Gravity.CENTER; setPadding(0, dp(20), 0, dp(20))
-            })
+            orientation = LinearLayout.VERTICAL; setPadding(dp(4), dp(4), dp(4), dp(4))
+            tag = if (isGif) "gif_grid" else "sticker_grid"
         }
 
-        Thread {
-            try {
-                val conn = (URL(url).openConnection() as HttpURLConnection).apply {
-                    connectTimeout = 8000; readTimeout = 8000
-                }
-                if (conn.responseCode == 200) {
-                    val json = JSONObject(conn.inputStream.bufferedReader().readText())
-                    val data = json.getJSONArray("data")
-                    val gifs = mutableListOf<Pair<String, String>>() // (previewUrl, fullUrl)
-
-                    for (i in 0 until data.length()) {
-                        val item = data.getJSONObject(i)
-                        val images = item.getJSONObject("images")
-                        val preview = images.getJSONObject("fixed_width_small").optString("url", "")
-                        val full = images.getJSONObject("fixed_width").optString("url", "")
-                        if (preview.isNotEmpty() && full.isNotEmpty()) {
-                            gifs.add(Pair(preview, full))
-                        }
-                    }
-
-                    handler.post { displayGifs(gifs) }
-                } else {
-                    handler.post { showGifError("Failed to load GIFs") }
-                }
-                conn.disconnect()
-            } catch (e: Exception) {
-                Log.d(TAG, "GIF fetch error: ${e.message}")
-                handler.post { showGifError("Network error") }
-            }
-        }.start()
-    }
-
-    private fun displayGifs(gifs: List<Pair<String, String>>) {
-        val grid = gifGrid ?: return
-        grid.removeAllViews()
-
-        if (gifs.isEmpty()) {
-            grid.addView(TextView(this).apply {
-                text = "No GIFs found"; setTextColor(C.TXT_L)
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-                gravity = Gravity.CENTER; setPadding(0, dp(20), 0, dp(20))
-            })
-            return
-        }
-
-        val cols = 3
-        var row: LinearLayout? = null
-
-        for ((i, gif) in gifs.withIndex()) {
-            if (i % cols == 0) {
-                row = LinearLayout(this).apply {
-                    orientation = LinearLayout.HORIZONTAL
-                    gravity = Gravity.CENTER_HORIZONTAL
-                    setPadding(0, dp(2), 0, dp(2))
-                }
-                grid.addView(row)
-            }
-
-            val imgView = ImageView(this).apply {
-                layoutParams = LinearLayout.LayoutParams(0, dp(80), 1f).apply {
-                    marginStart = dp(2); marginEnd = dp(2)
-                }
-                scaleType = ImageView.ScaleType.CENTER_CROP
-                background = rr(C.NUM_BG, dp(6).toFloat())
-                clipToOutline = false
-
-                setOnClickListener {
-                    performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                    // Insert GIF URL as text (apps that support rich content will render it)
-                    currentInputConnection?.commitText(gif.second, 1)
-                }
-            }
-
-            try {
-                Glide.with(applicationContext)
-                    .asGif()
-                    .load(gif.first)
-                    .diskCacheStrategy(DiskCacheStrategy.ALL)
-                    .centerCrop()
-                    .into(imgView)
-            } catch (e: Exception) {
-                Log.d(TAG, "Glide load failed: ${e.message}")
-            }
-
-            row?.addView(imgView)
-        }
-
-        // Fill last row
-        val rem = cols - (gifs.size % cols)
-        if (rem in 1 until cols) {
-            for (j in 0 until rem) {
-                row?.addView(View(this).apply {
-                    layoutParams = LinearLayout.LayoutParams(0, dp(80), 1f)
-                })
-            }
-        }
-
-        // GIPHY attribution (required by TOS)
+        // Loading placeholder
         grid.addView(TextView(this).apply {
-            text = "Powered by GIPHY"
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)
-            setTextColor(C.TXT_L)
-            gravity = Gravity.CENTER
-            setPadding(0, dp(6), 0, dp(4))
-        })
-    }
-
-    private fun showGifError(msg: String) {
-        val grid = gifGrid ?: return
-        grid.removeAllViews()
-        grid.addView(TextView(this).apply {
-            text = msg; setTextColor(C.ERR)
+            text = "Loading..."; setTextColor(C.TXT_L)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-            gravity = Gravity.CENTER; setPadding(0, dp(20), 0, dp(20))
+            gravity = Gravity.CENTER; setPadding(0, dp(30), 0, dp(30))
         })
+
+        if (isGif) gifGrid = grid else stickerGrid = grid
+        scroll.addView(grid); panel.addView(scroll)
+
+        // Attribution
+        panel.addView(TextView(this).apply {
+            text = "Powered by GIPHY"; setTextSize(TypedValue.COMPLEX_UNIT_SP, 9f)
+            setTextColor(C.TXT_L); gravity = Gravity.CENTER; setPadding(0, dp(4), 0, dp(6))
+            setBackgroundColor(Color.WHITE)
+        })
+
+        return panel
     }
 
-    private fun selECat(i: Int, tr: LinearLayout) { emojiCat = i; for (x in 0 until tr.childCount - 1) (tr.getChildAt(x) as? TextView)?.background = if (x == i) rr(C.EMOJI_SEL, dp(8).toFloat()) else null; emojiWrap?.findViewWithTag<LinearLayout>("eg")?.let { buildEGrid(it, i) } }
-    private fun showEmoji() { emojiOn = true; kbWrap?.visibility = View.GONE; emojiWrap?.visibility = View.VISIBLE }
-    private fun hideEmoji() { emojiOn = false; emojiWrap?.visibility = View.GONE; kbWrap?.visibility = View.VISIBLE }
+    private fun loadTrendingGifs() { fetchMedia("$GIPHY_GIF/trending?api_key=$GIPHY_KEY&limit=24&rating=pg", gifGrid, false) }
+    private fun searchGifs(q: String) { val e = URLEncoder.encode(q, "UTF-8"); fetchMedia("$GIPHY_GIF/search?api_key=$GIPHY_KEY&q=$e&limit=24&rating=pg", gifGrid, false) }
+    private fun loadTrendingStickers() { fetchMedia("$GIPHY_STICKER/trending?api_key=$GIPHY_KEY&limit=24&rating=pg", stickerGrid, true) }
+    private fun searchStickers(q: String) { val e = URLEncoder.encode(q, "UTF-8"); fetchMedia("$GIPHY_STICKER/search?api_key=$GIPHY_KEY&q=$e&limit=24&rating=pg", stickerGrid, true) }
 
     private fun updateTBtn() { transBtn?.visibility = if (hasTyped && result == null && !busy) View.VISIBLE else View.GONE }
     private fun updateTUI() { val tr = transRow ?: return; val ar = actRow ?: return; when { busy -> { tr.visibility = View.VISIBLE; transView?.text = "Translating\u2026"; transView?.setTextColor(C.TXT_L); transView?.setTypeface(null, Typeface.ITALIC); ar.visibility = View.GONE }; err != null -> { tr.visibility = View.VISIBLE; transView?.text = err; transView?.setTextColor(C.ERR); transView?.setTypeface(null, Typeface.NORMAL); ar.visibility = View.GONE }; result != null -> { tr.visibility = View.VISIBLE; transView?.text = result; transView?.setTextColor(C.PRI); transView?.setTypeface(null, Typeface.BOLD); ar.visibility = View.VISIBLE }; else -> { tr.visibility = View.GONE; ar.visibility = View.GONE } } }
